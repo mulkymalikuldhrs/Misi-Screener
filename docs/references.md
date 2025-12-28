@@ -37,3 +37,21 @@ The following concepts and practices from the reference material were intentiona
 -   **Justification:** During the research phase, direct inspection of code within potential reference repositories (like `quant-science`) was not possible due to technical limitations. To ensure the logic is 100% transparent, auditable, and deterministic, a "first-principles" approach was taken.
 -   **Methodology:** The swing detection logic was built based on a simple, widely accepted, and non-ambiguous definition: a swing high is a candle with N lower highs on both sides, and a swing low is a candle with N higher lows on both sides.
 -   **Advantages:** This approach guarantees zero reliance on black-box external code and aligns perfectly with the project's core value of auditability.
+
+### Liquidity & Participation Engine (`core/liquidity`)
+
+-   **Reference:** First-Principles Design
+-   **Justification:** Similar to the Market Structure Engine, the inability to reliably inspect external codebases necessitated a first-principles approach to ensure auditability and determinism.
+-   **Methodology:**
+    -   **Participation Score:** Logic was developed based on the fundamental concepts of market participation, combining normalized volume and true range to create a dimensionless, percentile-ranked score. This avoids complex, opaque indicators.
+    -   **Liquidity Sweeps:** The detection logic is based on a clear, observable market behavior: the failure of price to hold beyond a recent high or low. This is a purely mechanical definition that requires no predictive or probabilistic assumptions.
+-   **Advantages:** The logic is 100% transparent, avoids dependency on broker-specific data (like order flow), and remains robust even in low-volume conditions.
+
+### Regime Classification Engine (`core/regime`)
+
+-   **Reference:** First-Principles Design, inspired by general quantitative finance concepts.
+-   **Justification:** While the *idea* of regime classification was inspired by `quant-science`, the implementation is a pure, first-principles design to ensure it perfectly fits the MiSi Screener's architecture and philosophy.
+-   **Methodology:**
+    -   **Multi-Factor Input:** The engine synthesizes multiple, non-correlated factors (volatility, structure stability, participation) into a single, unified classification. This is a robust design pattern in quantitative systems.
+    -   **Rule-Based Classifier:** A deterministic, rule-based classifier is used instead of a statistical or machine-learning model. This guarantees that the logic is 100% auditable, repeatable, and non-predictive. The rules are designed to map specific, observable market characteristics to the five official regimes.
+-   **Advantages:** This approach avoids the "black box" problem of machine learning models and ensures that every regime classification can be explained and traced back to its root causes in the data.

@@ -30,33 +30,44 @@ The Core Engine consists of deterministic, non-predictive modules that analyze t
 -   **Hard Prohibitions:** The logic is inherently non-repainting and uses a fixed lookback, ensuring that for a given dataset, the output is always identical.
 
 ### 1.2 Liquidity & Participation Engine
--   **Location:** `core/liquidity/`
--   **Function:** To measure market activity and pressure.
--   **Technical Deliverables:**
-    -   `Sweep Detection`: Identifies liquidity sweeps based on a combination of range expansion, volume, and session timing.
-    -   `Participation Score`: A deterministic score (0-100) reflecting the intensity of market participation.
--   **Design Mandate:** Must be robust enough to function in low-volume environments and not be dependent on a specific broker's data feed.
+-   **Location:** `core/liquidity/engine.py`
+-   **Function:** To measure market activity and pressure using a deterministic, first-principles approach.
+-   **Implementation Blueprint:** A stateless class that takes OHLCV data and lookback periods as input.
+-   **Inputs:**
+    -   `ohlc_data`: A pandas DataFrame with columns including `high`, `low`, `close`, and `volume`.
+    -   `participation_period`: The lookback window for normalizing the participation score.
+    -   `sweep_lookback`: The lookback window for identifying recent highs/lows for sweep detection.
+-   **Outputs (`LiquidityOutput`):**
+    -   `participation_score`: A pandas Series providing a percentile-ranked score (0-100) for each candle, reflecting its combined volume and range activity relative to the lookback period.
+    -   `liquidity_sweeps`: A list of `LiquiditySweep` events, marking specific points where a recent high/low was breached but the price failed to hold.
+-   **Core Logic (First Principles):**
+    -   **Participation Score:** Calculated by normalizing both volume and true range over the `participation_period` and combining them into a single score. This creates a robust measure of activity that is not dependent on absolute volume levels.
+    -   **Liquidity Sweeps:** Detected by identifying when price pierces a high/low established within the `sweep_lookback` period, but the candle's close reverses back below/above that level, indicating a failure to continue.
+-   **Design Mandate:** The logic is explicitly designed to avoid reliance on order flow or other broker-specific data, ensuring it is universally applicable and auditable.
 
 ---
 
 ## PHASE 2: REGIME ENGINE (The Heart of the System)
 
--   **Location:** `core/regime/`
--   **Function:** To classify the market's current behavioral state. This is the central context engine.
--   **Finalized Regimes:**
-    -   `Expansion`: Characterized by increasing volatility and directional movement.
-    -   `Compression`: Characterized by decreasing volatility and range contraction.
-    -   `Transition`: The state between Expansion and Compression.
-    -   `Mean-reversion`: Conditions favoring a return to a statistical mean.
-    -   `Stress / Breakdown`: Highly volatile, unpredictable conditions often associated with major news events or structural failures.
--   **Inputs:**
-    -   Volatility behavior (realized vol, ATR-relative metrics).
-    -   Structure stability score from the Structure Engine.
-    -   Liquidity behavior from the Liquidity Engine.
--   **Outputs:**
-    -   `Regime Label`: The current classified regime.
-    -   `Regime Confidence`: A score of how clearly the data fits the regime profile.
-    -   `Incompatible Actions`: A list of trading logic types that are invalid in the current regime (e.g., "Breakout logic invalid" during `Compression`).
+-   **Location:** `core/regime/engine.py`
+-   **Function:** To classify the market's current behavioral state by synthesizing metrics from volatility, structure, and liquidity.
+-   **Implementation Blueprint:** A stateless class that takes a `RegimeInput` data object and returns a `RegimeOutput` object. The core is a deterministic, rule-based classifier.
+-   **Inputs (`RegimeInput`):**
+    -   `atr_percentile`: A float (0.0-1.0) representing the percentile rank of the current ATR over a lookback period. This is the primary measure of **volatility**.
+    -   `structure_stability`: A float (0.0-1.0) representing the clarity of the market's trend, derived from the `MarketStructureEngine`. This is the measure of **structure**.
+    -   `participation_score`: A float (0-100) representing the intensity of market activity, taken from the `LiquidityEngine`. This is the measure of **liquidity**.
+-   **Outputs (`RegimeOutput`):**
+    -   `regime`: The classified `Regime` enum (e.g., `EXPANSION`, `COMPRESSION`).
+    -   `confidence`: A score (0.0-1.0) indicating how well the inputs match the profile of the classified regime.
+    -   `incompatible_actions`: A list of strings identifying trading logic that is invalid in the current regime.
+-   **Core Logic (Rule-Based Classifier):**
+    -   The engine uses a series of `if/elif` statements to check for specific combinations of the three inputs.
+    -   **Stress / Breakdown:** Triggered by extremely high volatility and very low structure stability.
+    -   **Compression:** Triggered by very low volatility and low participation.
+    -   **Expansion:** Triggered by a combination of high volatility, high structure stability, and high participation.
+    -   **Mean-Reversion:** Triggered by medium-to-high volatility but low structure stability (indicating chop).
+    -   **Transition:** The default state if no other specific regime profile is met.
+-   **Design Mandate:** The engine is explicitly not a predictive model. It is a descriptive classifier of the *current* market state based on observable, quantitative data.
 
 ---
 
