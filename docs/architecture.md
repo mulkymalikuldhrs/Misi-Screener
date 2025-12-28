@@ -16,13 +16,18 @@ A module or the system as a whole is considered "Final" only when it meets these
 The Core Engine consists of deterministic, non-predictive modules that analyze the raw price action.
 
 ### 1.1 Market Structure Engine
--   **Location:** `core/structure/`
+-   **Location:** `core/structure/engine.py`
 -   **Function:** To objectively map the current market structure.
--   **Technical Deliverables:**
-    -   `Swing Detector`: A deterministic algorithm to identify significant swing highs and lows.
-    -   `BOS/CHoCH Flagger`: Flags Breaks of Structure (BOS) and Changes of Character (CHoCH) based on the swing map.
-    -   `Structure Confidence Score`: A score indicating the clarity of the current structure (e.g., a clean trend vs. a choppy range), not a probabilistic forecast.
--   **Hard Prohibitions:** No repainting. No hindsight labeling. The output for a given candle must be final once the candle closes.
+-   **Implementation Blueprint:** The engine is a stateless class that takes OHLC data and a lookback period as input. It identifies swing points based on a "first-principles" method.
+-   **Inputs:**
+    -   `ohlc_data`: A pandas DataFrame containing the price history.
+    -   `lookback_period`: An integer `N` used to define the strength of a swing point.
+-   **Outputs (`StructureOutput`):**
+    -   `swing_points`: A list of `SwingPoint` objects, each containing the timestamp, price, type (High/Low), and strength of the detected swing.
+-   **Core Logic (First Principles):**
+    -   A **Swing High** is defined as a candle whose `high` is strictly greater than the `high` of the `N` preceding candles and the `N` succeeding candles.
+    -   A **Swing Low** is defined as a candle whose `low` is strictly lower than the `low` of the `N` preceding candles and the `N` succeeding candles.
+-   **Hard Prohibitions:** The logic is inherently non-repainting and uses a fixed lookback, ensuring that for a given dataset, the output is always identical.
 
 ### 1.2 Liquidity & Participation Engine
 -   **Location:** `core/liquidity/`
