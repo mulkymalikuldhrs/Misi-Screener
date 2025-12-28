@@ -8,6 +8,23 @@ This document lists the external, open-source references used to inform the conc
 - **SYSTEM OVER NOTEBOOK:** Notebooks and research from references are treated as conceptual guides. The final output is always a modular, production-ready system.
 - **AUDITABLE CONCEPTS:** Every concept integrated must be traceable to its source, with a clear understanding of its function and limitations.
 
+## Additional References (Analysis Phase)
+
+During the development of the `FeatureEngine`, the following repositories were analyzed. While direct code adoption was not possible or appropriate, they served to inform our first-principles implementation plan.
+
+-   **Sources:**
+    -   `mulkymalikuldhrs/TradingAgents`
+    -   `mulkymalikuldhrs/ai-agents-for-trading`
+    -   `mulkymalikuldhrs/quant-trading`
+-   **Date of Review:** 2024-05-22
+
+### Overall Findings
+
+-   The `TradingAgents` and `ai-agents-for-trading` repositories were **REJECTED** as philosophically incompatible. Their reliance on predictive, non-deterministic LLM agents is the antithesis of the `MiSi Screener`'s core principles.
+-   The `quant-trading` repository, while also rejected for its focus on backtesting and signal generation, provided a useful list of standard, deterministic indicators that are suitable for adaptation as descriptive features.
+
+---
+
 ## Primary Reference
 
 - **Source:** [quant-science GitHub Organization](https://github.com/quant-science)
@@ -55,3 +72,12 @@ The following concepts and practices from the reference material were intentiona
     -   **Multi-Factor Input:** The engine synthesizes multiple, non-correlated factors (volatility, structure stability, participation) into a single, unified classification. This is a robust design pattern in quantitative systems.
     -   **Rule-Based Classifier:** A deterministic, rule-based classifier is used instead of a statistical or machine-learning model. This guarantees that the logic is 100% auditable, repeatable, and non-predictive. The rules are designed to map specific, observable market characteristics to the five official regimes.
 -   **Advantages:** This approach avoids the "black box" problem of machine learning models and ensures that every regime classification can be explained and traced back to its root causes in the data.
+
+### Feature Engine (`data/features`)
+
+-   **Reference:** First-Principles Design, using a curated list of standard indicators from `quant-trading` as a backlog.
+-   **Justification:** The features needed by the core engines must be deterministic and mathematically sound. Rather than relying on potentially opaque third-party libraries, we implement the formulas for these indicators from scratch.
+-   **Methodology:**
+    -   **Heikin-Ashi:** The formula for transforming OHLC candles into Heikin-Ashi candles is public knowledge and was implemented directly. This serves as a foundational data transformation feature.
+    -   **Standard Indicators (ATR, RSI, MACD, etc.):** The list of indicators to be implemented was inspired by the contents of the `quant-trading` repository. However, the implementation of each will be done from first principles based on their standard, publicly available mathematical definitions.
+-   **Advantages:** This guarantees that every feature is 100% transparent, auditable, and free from any hidden predictive logic. It also makes the system self-contained and reduces external dependencies.

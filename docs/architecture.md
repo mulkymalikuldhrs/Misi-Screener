@@ -112,12 +112,19 @@ The Core Engine consists of deterministic, non-predictive modules that analyze t
 ## PHASE 5: DATA & NOISE DEFENSE
 
 -   **Location:** `data/`
--   **Function:** To ensure the system operates only on high-quality data and refuses to analyze garbage.
+-   **Function:** To ensure the system operates only on high-quality data and to generate the deterministic features required by the core engines.
 -   **Key Components:**
-    -   `Data Integrity Score`: A metric to score the quality of the incoming data stream.
-    -   `Explicit Missing Data Handling`: Clear logic for how gaps in data are handled (e.g., halt analysis, never fill).
-    -   `Latency Awareness`: The system must be aware of potential data latency and flag it.
--   **Core Principle:** It is better to refuse analysis than to provide a flawed one.
+    -   **Loaders (`data/loaders/`):** Responsible for ingesting raw data from various sources. (To be implemented).
+    -   **Validators (`data/validators/`):** Responsible for cleaning the data and calculating a `Data Integrity Score`. (To be implemented).
+    -   **Feature Engine (`data/features/engine.py`):** The core of the data pipeline. This module takes clean OHLCV data and calculates a wide range of deterministic, descriptive features.
+        -   **Implementation Blueprint:** A stateless class containing a collection of methods, each calculating a specific feature from first principles.
+        -   **Initial Features:**
+            -   `Heikin-Ashi Transformation`: A data smoothing technique.
+            -   `ATR (Average True Range)`: A measure of volatility.
+            -   `RSI (Relative Strength Index)`: A measure of momentum.
+            -   `MACD (Moving Average Convergence Divergence)`: A measure of trend and momentum.
+        -   **Role:** This engine is the single source of truth for all quantitative inputs used by the `Structure`, `Liquidity`, `Regime`, and `Risk` engines, ensuring consistency and auditability.
+-   **Core Principle:** The data pipeline's first job is to say "NO" to bad data. Its second job is to transform good data into objective, non-predictive facts for the core engines.
 
 ---
 
