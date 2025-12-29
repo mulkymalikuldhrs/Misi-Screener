@@ -1,28 +1,41 @@
-# MiSi Screener: The Autonomous AI Quant Trading System
+# MiSi Screener: Sovereign-Grade AI Trading Intelligence
 
-**MiSi Screener is an open-source initiative to build the world's most advanced, fully autonomous AI-driven quantitative trading system.**
+**MiSi Screener is an open-source initiative to build a sovereign-grade, institutional trading intelligence engine, capable of operating as a fully autonomous agent or as an interactive AI analyst for human traders.**
 
-Our vision is to create a system where a collective of specialized AI agents—analyzing technicals, fundamentals, sentiment, and geopolitics—collaborate to identify, execute, and manage trading strategies, ultimately surpassing human capabilities in consistency and accuracy. This is not just a tool; it's a quest to build a truly intelligent financial machine.
+Our vision is to fuse a deep, multi-faceted analytical "brain"—comprising 11 distinct intelligence modules—with a flexible operational framework. This allows the system to either execute trades autonomously based on its findings or present its comprehensive analysis to a human decision-maker via an intuitive dashboard and chat interface.
 
 ---
 
-### Key Features & Vision
+### A Unified Vision: Two Modes of Operation
 
--   **Multi-Agent Intelligence:** A team of specialized AI agents work together, each providing a unique perspective on the market.
--   **Automated Strategy Selection:** The system will analyze a vast library of hundreds of trading strategies, automatically selecting the most accurate and consistent ones for the current market conditions.
--   **End-to-End Autonomy:** From signal generation and risk/reward calculation to final execution, the AI is designed to manage the entire trading lifecycle.
--   **Advanced Risk Management:** An AI Risk Manager continuously assesses portfolio and market risk, with the authority to override trading decisions to protect capital.
--   **Stunning Dashboard:** A comprehensive, real-time dashboard will provide a clear view into the AI's "mind," displaying its analysis, decisions, and performance.
+1.  **Autonomous Agent Mode:** A collective of specialized AI agents collaborate to analyze markets, select strategies from a vast library, manage risk, and execute trades end-to-end. The dashboard serves as a monitor into the AI's "mind."
+2.  **Interactive Intelligence Mode:** A human trader interacts with the AI via a chat interface and dashboard. The AI acts as a world-class institutional analyst, generating in-depth, professional-grade intelligence reports and execution plans on demand.
+
+---
+
+### The 11 Intelligence Modules: The "Brain"
+
+At the core of MiSi Screener is a powerful analytical engine broken down into 11 specialized modules:
+
+1.  **Global Macro & Geopolitical Regime**
+2.  **Monetary & Fundamental Engine**
+3.  **Positioning & Crowd Dynamics**
+4.  **Intermarket & Cross-Asset Signals**
+5.  **Market Structure (SMC/ICT Core)**
+6.  **Liquidity & Orderflow Analysis**
+7.  **Order Book & Venue Analysis**
+8.  **DEX & New Pair Intelligence**
+9.  **Multi-Timeframe Execution Plan Builder**
+10. **Quantitative Scoring Engine**
+11. **Final Verdict Synthesizer**
 
 ---
 
 ### We Need You: A Call for Collaborators!
 
-This is an ambitious project, and we cannot do it alone. We are actively seeking passionate developers, quants, data scientists, and AI enthusiasts to join us in building the future of trading.
+This is an incredibly ambitious project, and we are actively seeking passionate developers, quants, data scientists, and AI enthusiasts to help us build this vision. Whether you specialize in macro analysis, smart money concepts, backend APIs, or frontend development, your contribution is vital.
 
-Whether you're an expert in machine learning, a wizard with data pipelines, or a frontend guru who can build beautiful dashboards, your contributions are welcome. This is your chance to be part of a project that aims to redefine the boundaries of quantitative finance.
-
-**Join our community and start contributing today!**
+**Join our community and help us build the future of trading intelligence!**
 
 ---
 
@@ -37,20 +50,12 @@ Whether you're an expert in machine learning, a wizard with data pipelines, or a
 
 ### Quick Start (Development Roadmap)
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/mulkymalikuldhrs/Misi-Screener.git
-    cd Misi-Screener
-    ```
-2.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-3.  **Explore the architecture:** Review the agent skeletons in the `agents/` directory and the project's direction in `docs/architecture.md`.
-4.  **Contribute:** Pick an open issue, or suggest a new feature!
+1.  **Clone the repository and install dependencies.**
+2.  **Explore the architecture:** Review the 11 intelligence modules in `components/` and the new unified vision in `docs/architecture.md`.
+3.  **Contribute:** Help us build out the logic for one of the analytical modules, improve the FastAPI backend, or design the dashboard UI!
 
 ---
 
 ### Disclaimer
 
-Trading involves substantial risk. This is a highly experimental project, and any strategies or decisions generated by the AI do not constitute financial advice. All contributors and users are responsible for their own financial decisions.
+This is a highly experimental project. Trading involves substantial risk. Any analysis, reports, or automated trades generated by the system do not constitute financial advice. All users and contributors are responsible for their own financial decisions.
