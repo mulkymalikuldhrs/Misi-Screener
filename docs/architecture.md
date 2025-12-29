@@ -1,160 +1,55 @@
-# MiSi Screener Architecture - Final Blueprint
+# MiSi Screener Architecture: A Multi-Agent AI Framework
 
-## Definition of "Final"
+## Core Concept: A Collaborative Team of AI Specialists
 
-A module or the system as a whole is considered "Final" only when it meets these criteria:
-1.  It can be used effectively without any predictive capabilities.
-2.  It remains useful and does not provide misleading information in adverse (choppy, low-volume) market conditions.
-3.  It defaults to a "NO TRADE" or "NO CONTEXT" state more often than it identifies opportunities.
-4.  Its logic can be easily audited and understood by a new engineer.
-5.  It is robust enough that the failure of one non-critical module does not collapse the entire system.
+The MiSi Screener is architected as a multi-agent system, mirroring the structure of a sophisticated quantitative hedge fund. Each agent is a specialized AI with a distinct role. These agents collaborate, share insights, and debate conclusions to arrive at a holistic, data-driven trading decision.
 
 ---
 
-## PHASE 1: CORE ENGINE (The Foundation)
+### Architectural Flow
 
-The Core Engine consists of deterministic, non-predictive modules that analyze the raw price action.
+**1. Data Ingestion (`data_sources/`)**
+   - The system begins by pulling in a massive volume of diverse data from multiple sources.
+   - **Market Data:** Real-time and historical price/volume data (OHLCV).
+   - **Fundamental Data:** Economic reports, company earnings, financial statements.
+   - **Sentiment Data:** News feeds, social media APIs (e.g., X), geopolitical updates.
 
-### 1.1 Market Structure Engine
--   **Location:** `core/structure/engine.py`
--   **Function:** To objectively map the current market structure.
--   **Implementation Blueprint:** The engine is a stateless class that takes OHLC data and a lookback period as input. It identifies swing points based on a "first-principles" method.
--   **Inputs:**
-    -   `ohlc_data`: A pandas DataFrame containing the price history.
-    -   `lookback_period`: An integer `N` used to define the strength of a swing point.
--   **Outputs (`StructureOutput`):**
-    -   `swing_points`: A list of `SwingPoint` objects, each containing the timestamp, price, type (High/Low), and strength of the detected swing.
--   **Core Logic (First Principles):**
-    -   A **Swing High** is defined as a candle whose `high` is strictly greater than the `high` of the `N` preceding candles and the `N` succeeding candles.
-    -   A **Swing Low** is defined as a candle whose `low` is strictly lower than the `low` of the `N` preceding candles and the `N` succeeding candles.
--   **Hard Prohibitions:** The logic is inherently non-repainting and uses a fixed lookback, ensuring that for a given dataset, the output is always identical.
+**2. The Analyst Team (`agents/`)**
+   - This team of AI agents runs in parallel, each analyzing the incoming data from its own unique perspective.
+   - **`TechnicalAnalystAgent`:** Processes price and volume data. It calculates hundreds of technical indicators (RSI, MACD, Bollinger Bands, etc.) and identifies market patterns and regimes.
+   - **`FundamentalAnalystAgent`:** Parses economic reports and financial statements to assess the intrinsic value and health of assets.
+   - **`SentimentAnalystAgent`:** Scans news and social media to gauge market sentiment, identifying trends of fear, greed, and hype.
+   - **`GeopoliticalAnalystAgent`:** Monitors global events to assess their potential impact on market stability.
 
-### 1.2 Liquidity & Participation Engine
--   **Location:** `core/liquidity/engine.py`
--   **Function:** To measure market activity and pressure using a deterministic, first-principles approach.
--   **Implementation Blueprint:** A stateless class that takes OHLCV data and lookback periods as input.
--   **Inputs:**
-    -   `ohlc_data`: A pandas DataFrame with columns including `high`, `low`, `close`, and `volume`.
-    -   `participation_period`: The lookback window for normalizing the participation score.
-    -   `sweep_lookback`: The lookback window for identifying recent highs/lows for sweep detection.
--   **Outputs (`LiquidityOutput`):**
-    -   `participation_score`: A pandas Series providing a percentile-ranked score (0-100) for each candle, reflecting its combined volume and range activity relative to the lookback period.
-    -   `liquidity_sweeps`: A list of `LiquiditySweep` events, marking specific points where a recent high/low was breached but the price failed to hold.
--   **Core Logic (First Principles):**
-    -   **Participation Score:** Calculated by normalizing both volume and true range over the `participation_period` and combining them into a single score. This creates a robust measure of activity that is not dependent on absolute volume levels.
-    -   **Liquidity Sweeps:** Detected by identifying when price pierces a high/low established within the `sweep_lookback` period, but the candle's close reverses back below/above that level, indicating a failure to continue.
--   **Design Mandate:** The logic is explicitly designed to avoid reliance on order flow or other broker-specific data, ensuring it is universally applicable and auditable.
+**3. The Strategy Library (`strategies/`)**
+   - This directory contains a vast and ever-growing collection of hundreds of trading strategies.
+   - Each strategy is a codified set of rules for entry, exit, and risk management (e.g., "RSI Mean Reversion," "Breakout on Volume Spike").
+   - The AI will analyze this library to find the strategies that are best suited to the current market analysis.
 
----
+**4. The Core Deciders (`agents/`)**
+   - This is where the analysis is synthesized into an actionable decision.
+   - **`TraderAgent`:** This is the central decision-making AI. It receives the reports from all Analyst agents. Its primary task is to "think hard"—to weigh the conflicting evidence, select the most appropriate strategy from the library, and generate a precise trade proposal, including entry price, position size, and risk parameters (stop-loss, take-profit).
+   - **`RiskManagerAgent`:** This AI acts as the ultimate safety check. It receives the trade proposal from the `TraderAgent` and evaluates it against a set of portfolio-level risk constraints (e.g., max drawdown, correlation limits, exposure). It has the **absolute authority to veto any trade** that it deems too risky.
 
-## PHASE 2: REGIME ENGINE (The Heart of the System)
+**5. Execution & Monitoring**
+   - If a trade is approved by the `RiskManagerAgent`, the `TraderAgent` sends the order to the exchange.
+   - The system then monitors the position, feeding real-time performance back into the `RiskManagerAgent`.
 
--   **Location:** `core/regime/engine.py`
--   **Function:** To classify the market's current behavioral state by synthesizing metrics from volatility, structure, and liquidity.
--   **Implementation Blueprint:** A stateless class that takes a `RegimeInput` data object and returns a `RegimeOutput` object. The core is a deterministic, rule-based classifier.
--   **Inputs (`RegimeInput`):**
-    -   `atr_percentile`: A float (0.0-1.0) representing the percentile rank of the current ATR over a lookback period. This is the primary measure of **volatility**.
-    -   `structure_stability`: A float (0.0-1.0) representing the clarity of the market's trend, derived from the `MarketStructureEngine`. This is the measure of **structure**.
-    -   `participation_score`: A float (0-100) representing the intensity of market activity, taken from the `LiquidityEngine`. This is the measure of **liquidity**.
--   **Outputs (`RegimeOutput`):**
-    -   `regime`: The classified `Regime` enum (e.g., `EXPANSION`, `COMPRESSION`).
-    -   `confidence`: A score (0.0-1.0) indicating how well the inputs match the profile of the classified regime.
-    -   `incompatible_actions`: A list of strings identifying trading logic that is invalid in the current regime.
--   **Core Logic (Rule-Based Classifier):**
-    -   The engine uses a series of `if/elif` statements to check for specific combinations of the three inputs.
-    -   **Stress / Breakdown:** Triggered by extremely high volatility and very low structure stability.
-    -   **Compression:** Triggered by very low volatility and low participation.
-    -   **Expansion:** Triggered by a combination of high volatility, high structure stability, and high participation.
-    -   **Mean-Reversion:** Triggered by medium-to-high volatility but low structure stability (indicating chop).
-    -   **Transition:** The default state if no other specific regime profile is met.
--   **Design Mandate:** The engine is explicitly not a predictive model. It is a descriptive classifier of the *current* market state based on observable, quantitative data.
+**6. The Dashboard (`dashboard/`)**
+   - A real-time, intuitive web interface that provides a window into the AI's "mind."
+   - It will visualize:
+     - Key insights from each Analyst agent.
+     - The strategy currently being considered or executed.
+     - The final decision of the `TraderAgent` and the approval/veto from the `RiskManagerAgent`.
+     - Real-time portfolio performance and risk metrics.
 
 ---
 
-## PHASE 3: RISK GOVERNOR (The Ultimate Authority)
+### Component Overview
 
--   **Location:** `core/risk/governor.py`
--   **Function:** To act as the master control switch for the entire system. Its directives are absolute and cannot be overridden by the user.
--   **Implementation Blueprint:** The governor is implemented as a stateless class that takes a `RiskInput` data object and returns a `GovernorDirective` object. The logic is a cascading series of rules, ensuring that the most critical risk factors are checked first.
--   **Inputs (`RiskInput`):**
-    -   `realized_volatility` & `volatility_percentile`: To measure current market volatility against historical norms.
-    -   `current_regime` & `regime_confidence`: To understand the market context provided by the Regime Engine.
-    -   `system_drawdown` & `is_new_equity_high`: To assess the current performance and risk exposure.
-    -   `data_integrity_score`: To ensure the quality of the data underpinning the analysis.
--   **Outputs (`GovernorDirective`):**
-    -   `permission_state`: The final, non-negotiable state (`ALLOW`, `RESTRICT`, `BLOCK`).
-    -   `reason`: A human-readable explanation for the current state.
--   **Core Logic (Cascading Rules):**
-    1.  **Data Integrity Failure?** → `BLOCK`
-    2.  **Market Regime is "Stress"?** → `BLOCK`
-    3.  **Volatility in >95th Percentile?** → `BLOCK`
-    4.  **System Drawdown > 20%?** → `BLOCK`
-    5.  **High Volatility + System Drawdown?** → `RESTRICT`
-    6.  **Low Regime Confidence?** → `RESTRICT`
-    7.  **Otherwise** → `ALLOW`
--   **Gate:** The system is considered mature only when this logic results in a `BLOCK` or `RESTRICT` state for the majority of the time.
-
----
-
-## PHASE 4: DECISION SUPPORT LAYER (The Anti-Signal Interface)
-
--   **Location:** `core/decision_support/`
--   **Function:** To translate the complex outputs of the core engines into a simple, non-actionable summary for the user.
--   **Displayed Information:**
-    -   Market State Summary (e.g., "Trending Up, High Confidence")
-    -   Regime Badge (e.g., "COMPRESSION")
-    -   Risk Status (e.g., "HIGH - RESTRICTED")
-    -   Setup Compatibility (e.g., "Mean-Reversion Setup: YES")
--   **Forbidden Information:** Entry prices, Take Profit/Stop Loss levels, forecasts.
-
----
-
-## PHASE 5: DATA & NOISE DEFENSE
-
--   **Location:** `data/`
--   **Function:** To ensure the system operates only on high-quality data and to generate the deterministic features required by the core engines.
--   **Key Components:**
-    -   **Loaders (`data/loaders/`):** Responsible for ingesting raw data from various sources. (To be implemented).
-    -   **Validators (`data/validators/`):** Responsible for cleaning the data and calculating a `Data Integrity Score`. (To be implemented).
-    -   **Feature Engine (`data/features/engine.py`):** The core of the data pipeline. This module takes clean OHLCV data and calculates a wide range of deterministic, descriptive features.
-        -   **Implementation Blueprint:** A stateless class containing a collection of methods, each calculating a specific feature from first principles.
-        -   **Initial Features:**
-            -   `Heikin-Ashi Transformation`: A data smoothing technique.
-            -   `ATR (Average True Range)`: A measure of volatility.
-            -   `RSI (Relative Strength Index)`: A measure of momentum.
-            -   `MACD (Moving Average Convergence Divergence)`: A measure of trend and momentum.
-        -   **Role:** This engine is the single source of truth for all quantitative inputs used by the `Structure`, `Liquidity`, `Regime`, and `Risk` engines, ensuring consistency and auditability.
--   **Core Principle:** The data pipeline's first job is to say "NO" to bad data. Its second job is to transform good data into objective, non-predictive facts for the core engines.
-
----
-
-## PHASE 6: API & FRONTEND (Minimalist & Honest)
-
--   **Locations:** `api/`, `frontend/`
--   **Design Philosophy:** The UI/UX must not encourage over-trading or create emotional responses.
--   **UI Principles:**
-    -   Use a neutral color palette. Avoid excessive use of "profit green" or "loss red".
-    -   Warnings and error states should be more prominent than "success" states.
--   **API Principles:**
-    -   Must be stateless.
-    -   Responses must be deterministic.
-    -   Outputs must be versioned to ensure long-term stability.
-
----
-
-## PHASE 7: REAL VALIDATION (Not Backtesting)
-
--   **Location:** `docs/validation.md`
--   **Function:** To define a rigorous, honest process for validating the system's effectiveness.
--   **Approved Validation Methods:**
-    -   `Forward Observation`: Analyzing system performance on live, unseen data.
-    -   `Failure Case Logging`: Actively logging and reviewing every instance where the system's analysis was incorrect or misleading.
-    -   `Regime Mismatch Review`: Manually reviewing periods where the classified regime did not match reality.
--   **Forbidden Validation Methods:** Backtesting, curve-fitting, "what-if" scenarios, or any claims of historical performance.
-
----
-
-## PHASE 8: OPEN SOURCE HYGIENE
-
--   **Required Documents:** `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`
--   **`docs/references.md` Mandate:** This file must be maintained with explicit details on what concepts were adopted from external sources (like `quant-science`), why they were chosen, and how they were modified to fit the MiSi Screener philosophy.
+-   **`main.py`:** The master orchestrator that initializes all agents and runs the main event loop.
+-   **`agents/`:** Contains the individual AI agent classes, each with its own logic and prompts.
+-   **`strategies/`:** A plug-and-play library of trading algorithms.
+-   **`data_sources/`:** Modules for connecting to APIs and fetching data.
+-   **`components/`:** Shared tools, such as the technical indicator library, risk calculators, and database connectors.
+-   **`dashboard/`:** The frontend application for visualizing the system's operations.
