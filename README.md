@@ -1,61 +1,82 @@
-# MiSi Screener: Sovereign-Grade AI Trading Intelligence
+# MiSi Screener - Sovereign Grade Intelligence Dashboard
 
-**MiSi Screener is an open-source initiative to build a sovereign-grade, institutional trading intelligence engine, capable of operating as a fully autonomous agent or as an interactive AI analyst for human traders.**
+This repository contains the source code for the MiSi Screener, a sophisticated, AI-powered quantitative analysis dashboard designed for traders and analysts who require deep, multi-faceted market insights.
 
-Our vision is to fuse a deep, multi-faceted analytical "brain"—comprising 11 distinct intelligence modules—with a flexible operational framework. This allows the system to either execute trades autonomously based on its findings or present its comprehensive analysis to a human decision-maker via an intuitive dashboard and chat interface.
+The system is built on a non-predictive, risk-first philosophy, providing decision-support tools rather than simple buy/sell signals. It integrates a comprehensive backend API with a reactive, user-friendly frontend to deliver a seamless analysis experience.
 
----
+## Core Features
 
-### A Unified Vision: Two Modes of Operation
+-   **Unified Analysis API**: A single, powerful API endpoint delivers a complete, structured analysis for any given asset, covering everything from market structure to macro context.
+-   **Interactive Charting**: High-performance candlestick charts powered by TradingView Lightweight Charts™.
+-   **AI-Powered Reporting**: Dynamically generated reports from 11 core analytical modules, providing a 360-degree view of the asset.
+-   **Integrated Risk Management**: A built-in position size calculator to enforce disciplined risk-taking.
+-   **Modular & Scalable**: A clean architecture that separates the frontend, backend, and core analytical components, making it easy to extend and maintain.
 
-1.  **Autonomous Agent Mode:** A collective of specialized AI agents collaborate to analyze markets, select strategies from a vast library, manage risk, and execute trades end-to-end. The dashboard serves as a monitor into the AI's "mind."
-2.  **Interactive Intelligence Mode:** A human trader interacts with the AI via a chat interface and dashboard. The AI acts as a world-class institutional analyst, generating in-depth, professional-grade intelligence reports and execution plans on demand.
+## Tech Stack
 
----
+-   **Backend**: Python 3, FastAPI
+-   **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
+-   **Charting**: TradingView Lightweight Charts™
 
-### The 11 Intelligence Modules: The "Brain"
+## System Architecture
 
-At the core of MiSi Screener is a powerful analytical engine broken down into 11 specialized modules:
+The project is organized into two main parts: the `dashboard` and the core `components`.
 
-1.  **Global Macro & Geopolitical Regime**
-2.  **Monetary & Fundamental Engine**
-3.  **Positioning & Crowd Dynamics**
-4.  **Intermarket & Cross-Asset Signals**
-5.  **Market Structure (SMC/ICT Core)**
-6.  **Liquidity & Orderflow Analysis**
-7.  **Order Book & Venue Analysis**
-8.  **DEX & New Pair Intelligence**
-9.  **Multi-Timeframe Execution Plan Builder**
-10. **Quantitative Scoring Engine**
-11. **Final Verdict Synthesizer**
+### 1. Dashboard (`dashboard/`)
 
----
+This directory contains the user-facing application.
 
-### We Need You: A Call for Collaborators!
+-   `frontend/index.html`: The main single-page application (SPA). It handles the UI, user interactions, and data visualization.
+-   `backend/main.py`: A FastAPI server that exposes the data API and serves the frontend.
 
-This is an incredibly ambitious project, and we are actively seeking passionate developers, quants, data scientists, and AI enthusiasts to help us build this vision. Whether you specialize in macro analysis, smart money concepts, backend APIs, or frontend development, your contribution is vital.
+#### API Endpoint
 
-**Join our community and help us build the future of trading intelligence!**
+The backend provides one primary endpoint:
 
----
+-   `GET /api/v1/analysis?asset={asset_name}`
 
-### Project Lead
+This endpoint returns a `FullAnalysisResponse` JSON object containing:
+-   `asset`: The name of the asset.
+-   `chart_data`: An array of OHLCV candles for the charting tab.
+-   `ai_analysis`: A detailed report object with insights from all 11 analytical modules.
+-   `technical_details`: A summary of key technical indicator values.
 
-**Mulky Malikul Dhaher**
--   **Email:** [mulkymalikuldhr@mail.com](mailto:mulkymalikuldhr@mail.com)
--   **Instagram:** [@mulkymalikuldhr](https://www.instagram.com/mulkymalikuldhr)
--   **Other Socials:** [@mulkilymalikuldhr](https://linktr.ee/mulkymalikuldhr)
+### 2. Analytical Core (`components/`)
 
----
+This directory holds the Python stubs for the 11 core analytical modules that form the "brain" of the system. In a production environment, these modules would contain the complex logic for generating real analysis.
 
-### Quick Start (Development Roadmap)
+## Getting Started
 
-1.  **Clone the repository and install dependencies.**
-2.  **Explore the architecture:** Review the 11 intelligence modules in `components/` and the new unified vision in `docs/architecture.md`.
-3.  **Contribute:** Help us build out the logic for one of the analytical modules, improve the FastAPI backend, or design the dashboard UI!
+### Prerequisites
 
----
+-   Python 3.8+
+-   `pip` for package management
 
-### Disclaimer
+### Installation & Running
 
-This is a highly experimental project. Trading involves substantial risk. Any analysis, reports, or automated trades generated by the system do not constitute financial advice. All users and contributors are responsible for their own financial decisions.
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/mulkymalikuldhrs/Misi-Screener.git
+    cd Misi-Screener
+    ```
+
+2.  **Install dependencies from the root directory:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  **Navigate to the backend directory and run the server:**
+    ```bash
+    cd dashboard/backend
+    uvicorn main:app --reload
+    ```
+    The server will start, typically on `http://127.0.0.1:8000`.
+
+4.  **Access the dashboard:**
+    Open your web browser and navigate to `http://127.0.0.1:8000`. The frontend application will be served automatically.
+
+## Philosophy
+
+MiSi Screener is designed to be a market intelligence system that helps traders understand market context, not to predict prices. It operates on the principles of being non-predictive, risk-first, regime-aware, and deterministic.
+
+(For more details, see `docs/philosophy.md` and `docs/architecture.md`)

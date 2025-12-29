@@ -3,22 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MiSi Screener - AI Trading Intelligence</title>
+    <title>MiSi Screener - AI Quant Dashboard</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
-            --bg-color: #1a1a1a;
-            --sidebar-bg: #1f1f1f;
-            --panel-bg: #242424;
-            --border-color: #333;
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --border-color: #2c2c2c;
             --text-color: #e0e0e0;
             --text-muted: #888;
             --accent-color: #00bfa5;
             --accent-color-dark: #008c7a;
-            --danger-color: #f44336;
-            --warning-color: #ff9800;
         }
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -26,181 +24,340 @@
             height: 100vh;
             overflow: hidden;
         }
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
         .sidebar {
             width: 350px;
-            background-color: var(--sidebar-bg);
+            background-color: var(--panel-bg);
             border-right: 1px solid var(--border-color);
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
-        }
-        .sidebar h1 {
-            font-size: 1.5rem;
-            color: var(--accent-color);
-            margin-top: 0;
-        }
-        .sidebar p {
-            color: var(--text-muted);
-            font-size: 0.9rem;
+            z-index: 10; /* Ensure sidebar is above chart */
         }
         .main-content {
             flex-grow: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
-        }
-        .report-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1rem;
-        }
-        .report-panel {
-            background-color: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1rem;
-        }
-        .report-panel h3 {
-            margin-top: 0;
-            font-size: 1rem;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.5rem;
-        }
-        .report-panel pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-size: 0.9rem;
-        }
-        .chat-container {
-            margin-top: auto;
-        }
-        .chat-input-group {
             display: flex;
-            margin-top: 1rem;
+            flex-direction: column;
         }
-        #asset-input, #chat-input {
+        .tab-navigation {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-button {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            background-color: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+        .tab-button.active {
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--accent-color);
+        }
+        .tab-content {
+            flex-grow: 1;
+            /* padding: 1.5rem; */ /* Padding removed for chart */
+            overflow-y: auto;
+            display: none;
+            position: relative;
+            height: 100%;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        #chart-container {
+            position: absolute;
             width: 100%;
-            padding: 0.8rem;
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            margin-bottom: 0.5rem;
-            border-radius: 4px;
+            height: 100%;
+        }
+        .padded-content {
+             padding: 1.5rem;
+        }
+
+        /* Sidebar controls styling */
+        .sidebar h1 { font-size: 1.5rem; color: var(--accent-color); margin-top: 0; }
+        .sidebar p { color: var(--text-muted); font-size: 0.9rem; }
+        .input-group { margin-top: auto; }
+        label { font-size: 0.9rem; color: var(--text-muted); }
+        input {
+            width: 100%; padding: 0.8rem; background-color: var(--bg-color);
+            border: 1px solid var(--border-color); color: var(--text-color);
+            margin-bottom: 0.5rem; border-radius: 4px; box-sizing: border-box;
         }
         button {
-            width: 100%;
-            padding: 0.8rem 1.2rem;
-            background-color: var(--accent-color);
-            border: none;
-            color: white;
-            cursor: pointer;
-            border-radius: 4px;
-            font-weight: bold;
+            width: 100%; padding: 0.8rem; background-color: var(--accent-color);
+            border: none; color: white; cursor: pointer; border-radius: 4px; font-weight: bold;
         }
-        button:hover {
-            background-color: var(--accent-color-dark);
-        }
-        #status {
-            text-align: center;
-            padding: 1rem;
-            color: var(--warning-color);
-            display: none;
-        }
+        button:hover { background-color: var(--accent-color-dark); }
+
+        /* Grid for AI Analysis */
+        .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1rem; }
+        .report-panel { background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; }
+        .report-panel h3 { margin-top: 0; font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .report-panel pre { white-space: pre-wrap; word-wrap: break-word; font-size: 0.9rem; }
+
+        /* Risk Calculator */
+        .risk-calculator { max-width: 600px; }
+        .input-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .input-group-calc { flex-grow: 1; }
+        .input-group-calc label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted); }
+        .input-group-calc input { width: 100%; box-sizing: border-box; }
+        .calc-button { width: auto; padding: 0.8rem 1.5rem; margin-top: 1rem; }
+        .risk-results { margin-top: 2rem; background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; }
+        .risk-results h3 { margin-top: 0; color: var(--accent-color); }
+        .risk-results p { margin: 0.5rem 0; }
+        .risk-results span { font-weight: bold; color: var(--text-color); }
+
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <h1>MiSi Screener</h1>
-        <p>Sovereign-Grade AI Trading Intelligence</p>
-
-        <div class="chat-container">
-            <label for="asset-input">Asset:</label>
-            <input type="text" id="asset-input" placeholder="e.g., BTC-USD, EURUSD, AAPL" value="BTC-USD">
-
-            <label for="chat-input">Query:</label>
-            <input type="text" id="chat-input" placeholder="e.g., 'Generate full report'" value="Generate full institutional report">
-
-            <div class="chat-input-group">
-                <button onclick="generateReport()">Generate Report</button>
+    <div class="container">
+        <div class="sidebar">
+            <h1>MiSi Screener</h1>
+            <p>AI Quant Dashboard</p>
+            <div class="input-group">
+                <label for="asset-input">Asset:</label>
+                <input type="text" id="asset-input" placeholder="e.g., BTC-USD" value="BTC-USD">
+                <button onclick="generateReport()">Generate Full Analysis</button>
             </div>
         </div>
-    </div>
 
-    <div class="main-content">
-        <div id="status">Generating report... Please wait.</div>
-        <div class="report-grid" id="report-grid">
-            <div class="report-panel" style="grid-column: 1 / -1; text-align: center;">
-                <p>Please enter an asset and query to generate a report.</p>
+        <div class="main-content">
+            <div class="tab-navigation">
+                <button class="tab-button active" onclick="openTab('chart')">Chart</button>
+                <button class="tab-button" onclick="openTab('ai-analysis')">AI Analysis</button>
+                <button class="tab-button" onclick="openTab('tech-details')">Technical Details</button>
+                <button class="tab-button" onclick="openTab('risk')">Risk Management</button>
+            </div>
+
+            <!-- Tab Content -->
+            <div id="chart" class="tab-content active">
+                <div id="chart-container"></div>
+            </div>
+
+            <div id="ai-analysis" class="tab-content">
+                <div class="padded-content">
+                    <h2>AI Intelligence Report</h2>
+                    <div class="report-grid" id="report-grid"></div>
+                </div>
+            </div>
+
+            <div id="tech-details" class="tab-content">
+                <div class="padded-content">
+                    <h2>Technical Indicator Data</h2>
+                    <pre id="tech-data-output">Technical data will appear here...</pre>
+                </div>
+            </div>
+
+            <div id="risk" class="tab-content">
+                <div class="padded-content">
+                    <h2>Position Size Calculator</h2>
+                    <div class="risk-calculator">
+                        <div class="input-row">
+                            <div class="input-group-calc">
+                                <label for="account-size">Account Size ($)</label>
+                                <input type="number" id="account-size" placeholder="10000" value="10000">
+                            </div>
+                            <div class="input-group-calc">
+                                <label for="risk-percent">Risk (%)</label>
+                                <input type="number" id="risk-percent" placeholder="1" value="1" step="0.1">
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group-calc">
+                                <label for="entry-price">Entry Price ($)</label>
+                                <input type="number" id="entry-price" placeholder="50000">
+                            </div>
+                            <div class="input-group-calc">
+                                <label for="stop-loss">Stop Loss ($)</label>
+                                <input type="number" id="stop-loss" placeholder="49500">
+                            </div>
+                        </div>
+                        <button onclick="calculatePositionSize()" class="calc-button">Calculate</button>
+                        <div id="risk-results" class="risk-results">
+                            <h3>Results</h3>
+                            <p><strong>Max Risk:</strong> <span id="result-risk-usd">-</span></p>
+                            <p><strong>Position Size (Units):</strong> <span id="result-size-units">-</span></p>
+                            <p><strong>Position Size (USD):</strong> <span id="result-size-usd">-</span></p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        const assetInput = document.getElementById('asset-input');
-        const chatInput = document.getElementById('chat-input');
-        const reportGrid = document.getElementById('report-grid');
-        const statusDiv = document.getElementById('status');
+        const chartContainer = document.getElementById('chart-container');
+        let chart = null;
+        let candleSeries = null;
 
-        async function generateReport() {
-            const asset = assetInput.value;
-            const query = chatInput.value;
+        function openTab(tabName) {
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
 
-            if (!asset || !query) {
-                alert("Please enter both an asset and a query.");
-                return;
-            }
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => button.classList.remove('active'));
 
-            // 1. Show loading state
-            reportGrid.innerHTML = '';
-            statusDiv.style.display = 'block';
+            document.getElementById(tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
 
-            try {
-                // 2. Make API call to the backend
-                const response = await fetch('/api/report', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        asset: asset,
-                        user_query: query
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                // 3. Render the report
-                renderReport(data);
-
-            } catch (error) {
-                console.error("API Error:", error);
-                reportGrid.innerHTML = `<div class="report-panel" style="grid-column: 1 / -1; text-align: center; color: var(--danger-color);"><p>Error generating report. Please check the console and ensure the backend server is running.</p></div>`;
-            } finally {
-                // 4. Hide loading state
-                statusDiv.style.display = 'none';
+            if (tabName === 'chart' && chart) {
+                chart.resize(chartContainer.clientWidth, chartContainer.clientHeight);
             }
         }
 
-        function renderReport(data) {
-            reportGrid.innerHTML = ''; // Clear previous report
+        function initializeChart() {
+            if (!chartContainer) return;
 
-            for (const [moduleName, moduleData] of Object.entries(data.report)) {
+            chart = LightweightCharts.createChart(chartContainer, {
+                width: chartContainer.clientWidth,
+                height: chartContainer.clientHeight,
+                layout: {
+                    backgroundColor: 'var(--bg-color)',
+                    textColor: 'var(--text-color)',
+                },
+                grid: {
+                    vertLines: { color: 'var(--border-color)' },
+                    horzLines: { color: 'var(--border-color)' },
+                },
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                rightPriceScale: { borderColor: 'var(--border-color)' },
+                timeScale: { borderColor: 'var(--border-color)' },
+            });
+
+            candleSeries = chart.addCandlestickSeries({
+                upColor: 'var(--accent-color)',
+                downColor: '#ef5350',
+                borderDownColor: '#ef5350',
+                borderUpColor: 'var(--accent-color)',
+                wickDownColor: '#ef5350',
+                wickUpColor: 'var(--accent-color)',
+            });
+        }
+
+        async function generateReport() {
+            const asset = document.getElementById('asset-input').value;
+            if (!asset) {
+                alert("Please enter an asset.");
+                return;
+            }
+            console.log(`Generating full analysis for: ${asset}`);
+
+            try {
+                const response = await fetch(`/api/v1/analysis?asset=${asset}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                // 1. Update Chart
+                updateChartData(data.chart_data);
+
+                // 2. Update AI Analysis Tab
+                updateAiAnalysis(data.ai_analysis);
+
+                // 3. Update Technical Details Tab
+                updateTechnicalDetails(data.technical_details);
+
+            } catch (error) {
+                console.error("Could not fetch analysis data:", error);
+                alert("Failed to fetch analysis data. See console for details.");
+            }
+        }
+
+        function updateChartData(chartData) {
+            if (!candleSeries) return;
+            const formattedData = chartData.map(d => ({
+                time: d.time / 1000,
+                open: d.open,
+                high: d.high,
+                low: d.low,
+                close: d.close
+            }));
+            candleSeries.setData(formattedData);
+        }
+
+        function updateAiAnalysis(analysis) {
+            const grid = document.getElementById('report-grid');
+            grid.innerHTML = ''; // Clear previous results
+
+            // Create a panel for each key in the analysis object
+            for (const [key, value] of Object.entries(analysis)) {
                 const panel = document.createElement('div');
                 panel.className = 'report-panel';
 
                 const title = document.createElement('h3');
-                title.textContent = moduleName.replace(/_/g, ' ').toUpperCase();
+                // Format title from snake_case to Title Case
+                title.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
                 const content = document.createElement('pre');
-                content.textContent = JSON.stringify(moduleData, null, 2);
+                content.textContent = value;
 
                 panel.appendChild(title);
                 panel.appendChild(content);
-                reportGrid.appendChild(panel);
+                grid.appendChild(panel);
             }
         }
+
+        function updateTechnicalDetails(details) {
+            const pre = document.getElementById('tech-data-output');
+            let content = "--- Key Indicators ---\n\n";
+            content += `RSI (14):            ${details.rsi_14}\n`;
+            content += `MA (20):             $${details.ma_20.toFixed(2)}\n`;
+            content += `MA (50):             $${details.ma_50.toFixed(2)}\n`;
+            content += `Bollinger Upper:     $${details.bollinger_upper.toFixed(2)}\n`;
+            content += `Bollinger Lower:     $${details.bollinger_lower.toFixed(2)}\n`;
+            pre.textContent = content;
+        }
+
+        function calculatePositionSize() {
+            const accountSize = parseFloat(document.getElementById('account-size').value);
+            const riskPercent = parseFloat(document.getElementById('risk-percent').value);
+            const entryPrice = parseFloat(document.getElementById('entry-price').value);
+            const stopLoss = parseFloat(document.getElementById('stop-loss').value);
+
+            const riskUsdEl = document.getElementById('result-risk-usd');
+            const sizeUnitsEl = document.getElementById('result-size-units');
+            const sizeUsdEl = document.getElementById('result-size-usd');
+
+            if (isNaN(accountSize) || isNaN(riskPercent) || isNaN(entryPrice) || isNaN(stopLoss)) {
+                alert("Please fill in all fields with valid numbers.");
+                return;
+            }
+
+            if (entryPrice <= stopLoss) {
+                alert("Entry price must be higher than stop loss for a long position.");
+                return;
+            }
+
+            const riskAmount = accountSize * (riskPercent / 100);
+            const riskPerUnit = entryPrice - stopLoss;
+            const positionSizeUnits = riskAmount / riskPerUnit;
+            const positionSizeUsd = positionSizeUnits * entryPrice;
+
+            riskUsdEl.textContent = `$${riskAmount.toFixed(2)}`;
+            sizeUnitsEl.textContent = positionSizeUnits.toFixed(8); // For crypto
+            sizeUsdEl.textContent = `$${positionSizeUsd.toFixed(2)}`;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeChart();
+            generateReport(); // Load initial data for all tabs
+
+            // Resize chart on container resize
+            new ResizeObserver(entries => {
+                if (entries.length === 0 || entries[0].target !== chartContainer) { return; }
+                const { width, height } = entries[0].contentRect;
+                if(chart) {
+                    chart.resize(width, height);
+                }
+            }).observe(chartContainer);
+        });
     </script>
 </body>
 </html>
