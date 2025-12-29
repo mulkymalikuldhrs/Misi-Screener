@@ -1,137 +1,123 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query, Body
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-import random
-import time
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import Any
 
-# --- Pydantic Models for API Response ---
-class Candle(BaseModel):
-    time: int
-    open: float
-    high: float
-    low: float
-    close: float
+# Use absolute imports, assuming the project root is in the PYTHONPATH
+from data_sources.yfinance_connector import YFinanceConnector
+from data_sources.news_connector import NewsConnector
+from data_sources.alpha_vantage_connector import AlphaVantageConnector
+from agents.query_orchestrator import QueryOrchestrator
 
-class AnalysisReport(BaseModel):
-    macro_context: str
-    market_sentiment: str
-    key_support_resistance: str
-    market_structure: str
-    smc_ict_analysis: str
-    wave_analysis: str
-    volume_profile: str
-    candlestick_patterns: str
-    intermarket_analysis: str
-    statistical_indicators: str
-    risk_assessment: str
-
-class TechnicalDetails(BaseModel):
-    rsi_14: float
-    ma_20: float
-    ma_50: float
-    bollinger_upper: float
-    bollinger_lower: float
-
-class FullAnalysisResponse(BaseModel):
-    asset: str
-    chart_data: List[Candle]
-    ai_analysis: AnalysisReport
-    technical_details: TechnicalDetails
 
 # --- FastAPI App Initialization ---
 app = FastAPI(
-    title="MiSi Screener API",
-    description="API for the Sovereign Grade AI Quant Dashboard",
-    version="1.0.0"
+    title="MiSi Terminal API",
+    description="API for the MiSi AI Quant Terminal.",
+    version="2.0.0"
 )
 
-# --- Helper Functions for Data Generation ---
-def generate_ohlcv_data(num_points=200):
-    """Generates realistic-looking OHLCV data."""
-    data = []
-    price = 100
-    timestamp = int(time.time()) * 1000  # Milliseconds
-    for i in range(num_points):
-        open_price = price + random.uniform(-1, 1)
-        high_price = open_price + random.uniform(0, 2)
-        low_price = open_price - random.uniform(0, 2)
-        close_price = random.uniform(low_price, high_price)
-        price = close_price
+# --- Service Instantiation ---
+# Instantiate our data connectors and the AI orchestrator.
+yfinance_connector = YFinanceConnector()
+news_connector = NewsConnector()
+alpha_vantage_connector = AlphaVantageConnector()
 
-        # Ensure low is the lowest and high is the highest
-        actual_low = min(open_price, close_price, low_price)
-        actual_high = max(open_price, close_price, high_price)
 
-        data.append({
-            "time": timestamp - ((num_points - i -1) * 86400 * 1000), # Daily candles
-            "open": round(open_price, 2),
-            "high": round(actual_high, 2),
-            "low": round(actual_low, 2),
-            "close": round(close_price, 2)
-        })
-    return data
+# --- Application Registry ---
+# This dictionary maps an "app_name" to a function that implements its logic.
+APP_REGISTRY = {
+    "get_historical_data": yfinance_connector.get_historical_data,
+    "get_news_headlines": news_connector.get_headlines,
+    "get_income_statement": alpha_vantage_connector.get_income_statement,
+}
 
-def generate_ai_analysis(asset: str) -> Dict[str, Any]:
-    """Generates placeholder AI analysis text for all 11 modules."""
-    return {
-        "macro_context": f"Economic indicators suggest a period of consolidation for {asset}. Inflation concerns are currently priced in, but monetary policy shifts remain a key variable.",
-        "market_sentiment": "Overall sentiment is neutral-to-bullish. Social media mentions are high, but institutional flows show a lack of strong conviction.",
-        "key_support_resistance": "Major resistance is identified at the $52,000 level. Key support lies at the psychological $45,000 mark, coinciding with the 200-day moving average.",
-        "market_structure": "The daily chart shows a potential higher low forming, indicating a possible continuation of the uptrend. A break below the previous swing low would invalidate this structure.",
-        "smc_ict_analysis": "A significant Fair Value Gap (FVG) is present between $46,500 and $47,200, which may act as a magnet for price. Liquidity is resting above the recent highs.",
-        "wave_analysis": f"The current price action for {asset} appears to be in a corrective Wave 4. We anticipate a final Wave 5 impulse to the upside, though the timing is uncertain.",
-        "volume_profile": "The Point of Control (POC) for the last 90 days is at $48,000, indicating this as a major area of price agreement and potential support/resistance.",
-        "candlestick_patterns": "A bullish engulfing candle was printed on the 3-day chart, suggesting a potential short-term reversal. However, confirmation on higher timeframes is needed.",
-        "intermarket_analysis": f"The correlation between {asset} and the NASDAQ 100 remains high. Weakness in the tech sector could negatively impact {asset}'s price action.",
-        "statistical_indicators": "Volatility has been contracting, as shown by the narrowing Bollinger Bands. This often precedes a significant price expansion.",
-        "risk_assessment": "The current market regime is classified as 'low-volatility, trending'. Maximum drawdown risk is considered moderate. Position sizes should be adjusted accordingly."
-    }
+# Instantiate the AI orchestrator with the app registry
+ai_orchestrator = QueryOrchestrator(APP_REGISTRY)
 
-def generate_technical_details() -> Dict[str, Any]:
-    """Generates placeholder technical indicator data."""
-    rsi = round(random.uniform(40, 60), 2)
-    ma_50 = round(random.uniform(48000, 49000), 2)
-    ma_20 = ma_50 + round(random.uniform(-500, 500), 2)
-    bollinger_upper = ma_20 + 400
-    bollinger_lower = ma_20 - 400
-    return {
-        "rsi_14": rsi,
-        "ma_20": ma_20,
-        "ma_50": ma_50,
-        "bollinger_upper": bollinger_upper,
-        "bollinger_lower": bollinger_lower,
-    }
 
 # --- API Endpoints ---
-@app.get("/api/v1/analysis", response_model=FullAnalysisResponse)
-async def get_full_analysis(asset: str):
-    """
-    Provides a full, multi-faceted analysis for a given asset.
-    This is the primary data endpoint for the dashboard.
-    """
-    if not asset:
-        raise HTTPException(status_code=400, detail="Asset parameter is required.")
+class AIQuery(BaseModel):
+    query: str
 
-    # In a real application, you would fetch and process real data here based on the asset.
-    # For this prototype, we generate placeholder data.
-    chart_data = generate_ohlcv_data()
-    ai_analysis = generate_ai_analysis(asset)
-    tech_details = generate_technical_details()
+@app.post("/api/v1/ai-query")
+async def handle_ai_query(request: AIQuery = Body(...)):
+    """
+    Handles a natural language query by parsing it, calling the correct application,
+    and returning the result.
+    """
+    app_name, params = ai_orchestrator.parse_query(request.query)
 
-    return {
-        "asset": asset,
-        "chart_data": chart_data,
-        "ai_analysis": ai_analysis,
-        "technical_details": tech_details,
-    }
+    if not app_name:
+        raise HTTPException(status_code=400, detail="Could not understand the query. Please be more specific.")
+
+    # Directly get the function from the registry
+    app_function = APP_REGISTRY[app_name]
+
+    try:
+        # Perform parameter validation and call the function directly
+        if app_name in ["get_historical_data", "get_income_statement"]:
+            ticker = params.get('ticker')
+            if not ticker:
+                raise HTTPException(status_code=400, detail=f"The 'ticker' parameter is required for the '{app_name}' app.")
+            data = app_function(ticker=ticker)
+            if app_name == "get_historical_data":
+                return {"app_name": app_name, "data": data.reset_index().to_dict(orient='records')}
+            return {"app_name": app_name, "data": data}
+
+        elif app_name == "get_news_headlines":
+            query = params.get('q') or params.get('ticker')
+            if not query:
+                raise HTTPException(status_code=400, detail="A 'q' or 'ticker' parameter is required for the 'get_news_headlines' app.")
+            data = app_function(query=query)
+            return {"app_name": app_name, "data": data}
+
+        else:
+            data = app_function()
+            return {"app_name": app_name, "data": data}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while handling AI query: {str(e)}")
+
+
+@app.get("/api/v1/invoke/{app_name}")
+async def invoke_app(app_name: str, ticker: str = Query(None), q: str = Query(None)) -> Any:
+    """
+    Primary endpoint to invoke a data or analysis application directly.
+    """
+    if app_name not in APP_REGISTRY:
+        raise HTTPException(status_code=404, detail=f"Application '{app_name}' not found.")
+
+    app_function = APP_REGISTRY[app_name]
+
+    try:
+        # Parameter validation remains here for direct invocations
+        if app_name in ["get_historical_data", "get_income_statement"]:
+            if not ticker:
+                raise HTTPException(status_code=400, detail=f"The 'ticker' parameter is required for the '{app_name}' app.")
+            data = app_function(ticker=ticker)
+            if app_name == "get_historical_data":
+                return data.reset_index().to_dict(orient='records')
+            return data
+
+        elif app_name == "get_news_headlines":
+            query = q or ticker
+            if not query:
+                raise HTTPException(status_code=400, detail="A 'q' or 'ticker' parameter is required for the 'get_news_headlines' app.")
+            return app_function(query=query)
+
+        else:
+            return app_function()
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred in '{app_name}': {str(e)}")
+
 
 # --- Static File Serving ---
-# Mount the static directory to serve frontend files
-app.mount("/static", StaticFiles(directory="../frontend"), name="static")
+app.mount("/static", StaticFiles(directory="dashboard/frontend"), name="static")
 
 @app.get("/", include_in_schema=False)
 async def read_index():
     """Serves the main index.html file."""
-    return FileResponse('../frontend/index.html')
+    return FileResponse('dashboard/frontend/index.html')

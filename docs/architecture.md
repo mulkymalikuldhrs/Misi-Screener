@@ -1,53 +1,48 @@
-# MiSi Screener Architecture: The Unified Vision
+# System Architecture
 
-## Core Philosophy: A Modular Brain for a Dual-Purpose System
+The MiSi Screener is designed as a modular, multi-component system to support its dual mission of autonomous operation and interactive analysis. The architecture is divided into several key directories at the project root.
 
-The architecture of MiSi Screener is designed around a central, powerful analytical "brain" that can be leveraged by two distinct operational branches. This allows the project to serve as both a fully autonomous trading agent and an interactive intelligence engine for human traders.
+```
+Misi-Screener/
+│
+├── agents/               # Core AI logic and orchestration
+├── data_sources/         # Connectors for external data APIs
+├── dashboard/            # The interactive web terminal (frontend + backend)
+│   ├── backend/
+│   └── frontend/
+├── components/           # (Future) Reusable, high-level analytical modules
+└── tests/                # Unit and integration tests
+```
 
----
+### 1. Agents (`agents/`)
 
-### At the Center: The 11 Intelligence Modules (`components/`)
+This is the "brain" of the system.
+-   **`query_orchestrator.py`**: A foundational agent responsible for parsing natural language queries from the user. It uses intent recognition and entity extraction to map a query like *"Show me the latest news for AAPL"* to a specific, executable function call (e.g., `get_news_headlines(ticker='AAPL')`).
+-   **(Future) Autonomous Agents**: This directory will house the logic for agents that can run independently, such as a `MarketScannerAgent` that continuously monitors for specific conditions or a `StrategyExecutionAgent` that manages trades.
 
-This is the core of the entire system. It is a collection of 11 specialized, modular engines, each responsible for a different facet of institutional-grade market analysis. They are designed to be pure, reusable, and composable.
+### 2. Data Sources (`data_sources/`)
 
-1.  **`macro_analysis`**: Analyzes global macro, geopolitics, and liquidity regimes.
-2.  **`monetary_fundamental`**: Analyzes central bank policies, economic data, and asset fundamentals.
-3.  **`positioning_crowd`**: Evaluates COT data, options positioning, and retail vs. institutional sentiment.
-4.  **`intermarket`**: Analyzes cross-asset correlations and SMT divergences.
-5.  **`market_structure`**: Performs deep SMC/ICT analysis on multiple timeframes.
-6.  **`liquidity_orderflow`**: Maps liquidity pools and analyzes order flow narratives.
-7.  **`order_book_venue`**: Analyzes the quality and risk of execution venues.
-8.  **`dex_intelligence`**: Assesses risks specific to DEX tokens and new pairs.
-9.  **`execution_plan`**: Synthesizes analysis into a concrete, multi-timeframe trade plan.
-10. **`quant_scoring`**: Objectively scores the quality of a generated trade plan.
-11. **`final_verdict`**: Produces the final, actionable output.
+This directory follows the principles of a data abstraction layer, inspired by OpenBB. It contains all the code necessary to connect to and retrieve data from external, third-party APIs.
+-   Each file is a **Connector** for a specific service (e.g., `yfinance_connector.py`, `alpha_vantage_connector.py`).
+-   This approach decouples the rest of the system from the specifics of any single data provider. If an API changes or needs to be replaced, only the corresponding connector needs to be updated.
 
----
+### 3. Dashboard (`dashboard/`)
 
-### Branch A: The Autonomous Agent Framework (`agents/`)
+This is the human-in-the-loop interface for the system—the interactive terminal.
+-   **`frontend/`**: A single-page application built with vanilla HTML, CSS, and JavaScript. It implements a multi-panel, grid-based layout and a command palette (`Ctrl+K`) for invoking commands. It is a "thin client" that primarily renders data received from the backend.
+-   **`backend/`**: A Python FastAPI server with two primary roles:
+    1.  It serves the static `index.html` and its assets.
+    2.  It exposes the API that the frontend and other system components use.
 
-This branch uses the 11 intelligence modules to power a collective of autonomous AI agents that make and execute their own trading decisions.
+#### Key API Endpoints:
+-   `GET /api/v1/invoke/{app_name}`: A direct, command-based endpoint that executes a specific analytical function (e.g., `get_income_statement`) from the `APP_REGISTRY`.
+-   `POST /api/v1/ai-query`: The natural language endpoint. It takes a JSON object with a `query` string, passes it to the `QueryOrchestrator`, and then routes the resulting command to the `invoke` logic.
 
--   **Workflow:**
-    1.  **Analyst Agents** (e.g., `TechnicalAnalyst`, `FundamentalAnalyst`) use the relevant `components` modules to generate reports.
-    2.  The **`TraderAgent`** receives these reports, uses the `ExecutionPlanBuilder`, `QuantScoringEngine`, and `FinalVerdictEngine` to form a final trade decision.
-    3.  The decision is sent to the **`RiskManagerAgent`** for approval.
-    4.  If approved, the trade is executed.
--   **Dashboard's Role:** In this mode, the dashboard acts as a **monitor**, providing a real-time view into the agents' activities and the portfolio's performance.
+### 4. Components (`components/`)
 
----
+This directory is reserved for higher-level, reusable analytical modules that are more complex than a simple data connector. Future examples might include:
+-   A proprietary risk management model.
+-   A complex technical analysis indicator library.
+-   A portfolio construction and optimization engine.
 
-### Branch B: The Interactive Intelligence Framework (`dashboard/`)
-
-This branch uses the 11 intelligence modules to serve a human trader via an interactive dashboard and chat interface.
-
--   **Workflow:**
-    1.  A **human user** submits a query via the chat interface (e.g., "Generate a full report for BTC-USD").
-    2.  The **FastAPI backend** (`dashboard/backend/`) receives the request.
-    3.  The backend orchestrates a call to the **11 intelligence modules** to perform a complete analysis.
-    4.  The final, synthesized report from the `FinalVerdictEngine` is formatted and sent back to the frontend.
--   **Dashboard's Role:** In this mode, the dashboard is an **interactive workspace**, allowing the user to request analyses, view detailed reports, and manage their own trading decisions based on the AI's institutional-grade insights.
-
----
-
-This dual architecture allows for maximum flexibility. We can develop the core "brain" and have it immediately benefit both the autonomous and interactive sides of the project, creating a powerful, unified system for trading intelligence.
+These components can be called upon by agents or invoked directly through the terminal to perform their specific analysis.

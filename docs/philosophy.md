@@ -1,28 +1,21 @@
-# MiSi Screener Philosophy: Unified Financial Intelligence
+# Philosophy: AI-First, Sovereign Grade Intelligence
 
-## Core Vision: Building a Sovereign-Grade Analytical "Brain"
+The philosophy of the MiSi Screener has evolved beyond a simple decision-support tool. It is now guided by a singular, ambitious vision: **to create a sovereign-grade, AI-native intelligence system.**
 
-The core philosophy of MiSi Screener is to build a single, powerful, and modular analytical "brain" capable of achieving a level of market understanding that surpasses institutional standards. This "brain" is the central source of truth and intelligence for the entire project.
+This means the system is designed from the ground up to be:
 
-Our innovation lies in how we leverage this intelligence. We believe that true power comes from flexibility. Therefore, this central brain is designed to serve two distinct but complementary operational modes: **autonomous execution** and **interactive collaboration**.
+### 1. AI-First, Not AI-Assisted
+The AI is not a feature; it is the core orchestrator. The system's primary mode of operation is through an AI agent that understands complex, high-level queries, retrieves the necessary data, performs analysis, and synthesizes insights. The interactive terminal is a powerful "window" into this AI's "thought process," not just a collection of widgets.
 
----
+### 2. Autonomous & Interactive: Two Sides of the Same Coin
+The system is architected to operate in two distinct but interconnected modes:
+-   **Autonomous Mode**: A headless agent capable of continuous market monitoring, opportunity scanning, and (eventually) trade execution based on predefined strategies.
+-   **Interactive Mode**: A human-in-the-loop terminal where an analyst can collaborate with the AI, using it as an infinitely capable research assistant to explore markets, test hypotheses, and manage risk in real-time.
 
-### The Two Applications of a Single Intelligence
+The same underlying analytical modules and data connectors power both modes, ensuring consistency and reliability.
 
-1.  **As an Autonomous Agent:**
-    -   We hypothesize that by giving this analytical brain agency, it can operate as a collective of AI agents that can navigate the markets with a discipline and objectivity that is free from human cognitive biases. In this mode, the AI is the trader, and its goal is consistent, risk-managed performance.
+### 3. Real-World, Not Simulated
+Inspired by the OpenBB philosophy, the system relies exclusively on connections to real-world, public data APIs. There are no simulated data feeds or backtests running on idealized assumptions. This "reality-first" principle ensures that all analysis, whether performed by the AI or a human, is grounded in the same data that drives the live market.
 
-2.  **As an Interactive Analyst:**
-    -   We recognize that human expertise, intuition, and ultimate accountability are invaluable. In this mode, the analytical brain serves as a world-class institutional analyst for a human decision-maker. Through an interactive dashboard and chat, the user can harness the full power of the AI's analysis to enhance their own trading process, receiving in-depth intelligence that would typically require a team of human analysts.
-
----
-
-### Our Guiding Principles
-
--   **Depth First:** Our primary focus is on the quality and depth of the 11 core intelligence modules. A shallow analysis, no matter how it's presented, is useless. We prioritize analytical rigor above all else.
--   **Modularity and Composability:** Each of the 11 modules is designed to be a self-contained, expert system. This allows us to improve them independently and allows them to be composed in novel ways to generate insights.
--   **Flexibility of Application:** We do not believe in a false dichotomy between "human vs. machine." The best results come from leveraging the strengths of both. Our unified architecture allows contributors to work on the part of the problem that interests them most—be it the core AI brain, the autonomous agents, or the human-computer interface—knowing it all contributes to a single, coherent system.
--   **Radical Openness:** Building a system this ambitious requires a global team. We are committed to open-source collaboration, inviting the best minds to help us build, test, and refine every component of this engine.
-
-By focusing on building the "brain" first, we create a foundation that is powerful enough to drive both a fully autonomous trading system and a next-generation human-in-the-loop intelligence platform.
+### 4. Modular & Composable, Not Monolithic
+A Bloomberg Terminal is not a single application; it is a collection of thousands of powerful, specialized "apps" (`/FA`, `/NEWS`, `/WEIF`, etc.). MiSi Screener adopts this modular approach. Every analytical function is a discrete component that can be invoked independently or composed by the AI orchestrator to answer complex, multi-faceted questions. This makes the system infinitely extensible.

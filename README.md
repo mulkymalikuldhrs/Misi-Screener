@@ -1,56 +1,45 @@
-# MiSi Screener - Sovereign Grade Intelligence Dashboard
+# MiSi Screener - Sovereign Grade AI Intelligence System
 
-This repository contains the source code for the MiSi Screener, a sophisticated, AI-powered quantitative analysis dashboard designed for traders and analysts who require deep, multi-faceted market insights.
+## Overview
 
-The system is built on a non-predictive, risk-first philosophy, providing decision-support tools rather than simple buy/sell signals. It integrates a comprehensive backend API with a reactive, user-friendly frontend to deliver a seamless analysis experience.
+MiSi Screener is a next-generation, AI-native financial analysis platform designed to function as both a **fully autonomous trading agent** and an **interactive, Bloomberg-grade intelligence terminal** for human analysts.
 
-## Core Features
+The system's core philosophy is to leverage cutting-edge AI to orchestrate complex data gathering, analysis, and strategy execution, moving beyond static dashboards into a dynamic, AI-driven analytical environment.
 
--   **Unified Analysis API**: A single, powerful API endpoint delivers a complete, structured analysis for any given asset, covering everything from market structure to macro context.
--   **Interactive Charting**: High-performance candlestick charts powered by TradingView Lightweight Charts™.
--   **AI-Powered Reporting**: Dynamically generated reports from 11 core analytical modules, providing a 360-degree view of the asset.
--   **Integrated Risk Management**: A built-in position size calculator to enforce disciplined risk-taking.
--   **Modular & Scalable**: A clean architecture that separates the frontend, backend, and core analytical components, making it easy to extend and maintain.
+## Key Features
+
+-   **Dual-Mode Operation**: Can be run headless as an autonomous agent or interactively via a sophisticated terminal UI.
+-   **AI-Powered Orchestration**: A central AI agent parses natural language queries, invokes the appropriate analytical modules, and synthesizes results.
+-   **Modular & Extensible Architecture**: Built with distinct, swappable components for data sources, analysis, and strategy execution, inspired by professional-grade systems like OpenBB.
+-   **Bloomberg-Style Terminal**: A multi-panel, command-driven user interface for rapid, keyboard-first analysis.
+-   **Real-Time Data Integration**: Connects to a wide array of free, public APIs for market data, news, and fundamental analysis.
 
 ## Tech Stack
 
 -   **Backend**: Python 3, FastAPI
+-   **AI Agent Framework**: (Placeholder for future implementation)
 -   **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
--   **Charting**: TradingView Lightweight Charts™
+-   **Data Connectors**: `yfinance`, `newsapi-python`, `requests`
 
 ## System Architecture
 
-The project is organized into two main parts: the `dashboard` and the core `components`.
+The project is architected to support its dual-mode vision:
 
-### 1. Dashboard (`dashboard/`)
+-   `agents/`: Contains the core logic for the AI orchestrator and future autonomous trading agents.
+-   `data_sources/`: Holds modular connectors for fetching data from various external APIs.
+-   `dashboard/`: The interactive terminal application, comprised of a FastAPI backend and a vanilla JS frontend.
+-   `components/`: (Future Use) Will contain standalone, reusable analytical modules (e.g., for complex TA or risk modeling).
+-   `tests/`: Unit and integration tests for the system.
 
-This directory contains the user-facing application.
-
--   `frontend/index.html`: The main single-page application (SPA). It handles the UI, user interactions, and data visualization.
--   `backend/main.py`: A FastAPI server that exposes the data API and serves the frontend.
-
-#### API Endpoint
-
-The backend provides one primary endpoint:
-
--   `GET /api/v1/analysis?asset={asset_name}`
-
-This endpoint returns a `FullAnalysisResponse` JSON object containing:
--   `asset`: The name of the asset.
--   `chart_data`: An array of OHLCV candles for the charting tab.
--   `ai_analysis`: A detailed report object with insights from all 11 analytical modules.
--   `technical_details`: A summary of key technical indicator values.
-
-### 2. Analytical Core (`components/`)
-
-This directory holds the Python stubs for the 11 core analytical modules that form the "brain" of the system. In a production environment, these modules would contain the complex logic for generating real analysis.
+(For a more detailed breakdown, please see `docs/architecture.md` and `docs/philosophy.md`.)
 
 ## Getting Started
 
 ### Prerequisites
 
--   Python 3.8+
--   `pip` for package management
+-   Python 3.9+
+-   An environment variable set for `NEWS_API_KEY` (from newsapi.org).
+-   An environment variable set for `ALPHA_VANTAGE_API_KEY` (from alphavantage.co).
 
 ### Installation & Running
 
@@ -65,18 +54,11 @@ This directory holds the Python stubs for the 11 core analytical modules that fo
     pip install -r requirements.txt
     ```
 
-3.  **Navigate to the backend directory and run the server:**
+3.  **Run the terminal's backend server:**
     ```bash
-    cd dashboard/backend
-    uvicorn main:app --reload
+    python -m uvicorn dashboard.backend.main:app --host 0.0.0.0 --port 8000 --reload
     ```
-    The server will start, typically on `http://127.0.0.1:8000`.
+    *Note: The server is run from the project root to ensure correct module resolution.*
 
-4.  **Access the dashboard:**
-    Open your web browser and navigate to `http://127.0.0.1:8000`. The frontend application will be served automatically.
-
-## Philosophy
-
-MiSi Screener is designed to be a market intelligence system that helps traders understand market context, not to predict prices. It operates on the principles of being non-predictive, risk-first, regime-aware, and deterministic.
-
-(For more details, see `docs/philosophy.md` and `docs/architecture.md`)
+4.  **Access the Terminal:**
+    Open your web browser and navigate to `http://127.0.0.1:8000`. Click on any panel to open the command palette (`Ctrl+K`).
