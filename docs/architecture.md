@@ -16,7 +16,7 @@ The MiSi Screener is architected as a multi-agent system, mirroring the structur
 
 **2. The Analyst Team (`agents/`)**
    - This team of AI agents runs in parallel, each analyzing the incoming data from its own unique perspective.
-   - **`TechnicalAnalystAgent`:** Processes price and volume data. It calculates hundreds of technical indicators (RSI, MACD, Bollinger Bands, etc.) and identifies market patterns and regimes.
+   - **`TechnicalAnalystAgent`:** Acts as a coordinator for technical analysis. It does not contain complex calculation logic itself. Instead, it uses the `technical_indicators` library to process market data and then structures the results into a comprehensive report for the `TraderAgent`.
    - **`FundamentalAnalystAgent`:** Parses economic reports and financial statements to assess the intrinsic value and health of assets.
    - **`SentimentAnalystAgent`:** Scans news and social media to gauge market sentiment, identifying trends of fear, greed, and hype.
    - **`GeopoliticalAnalystAgent`:** Monitors global events to assess their potential impact on market stability.
@@ -51,5 +51,6 @@ The MiSi Screener is architected as a multi-agent system, mirroring the structur
 -   **`agents/`:** Contains the individual AI agent classes, each with its own logic and prompts.
 -   **`strategies/`:** A plug-and-play library of trading algorithms.
 -   **`data_sources/`:** Modules for connecting to APIs and fetching data.
--   **`components/`:** Shared tools, such as the technical indicator library, risk calculators, and database connectors.
+-   **`components/`:** Shared tools and libraries that provide pure, reusable logic.
+    -   **`technical_indicators.py`:** A library of deterministic functions for calculating standard technical indicators (e.g., ATR, RSI, MACD). This is the core "toolbox" for the `TechnicalAnalystAgent`.
 -   **`dashboard/`:** The frontend application for visualizing the system's operations.

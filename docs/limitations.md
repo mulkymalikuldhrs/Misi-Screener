@@ -1,33 +1,30 @@
-# Limitations
+# Limitations & Risks of an Autonomous AI Trading System
 
-This document outlines the known limitations of the MiSi Screener system. It is critical for all users and developers to understand these boundaries to use the system responsibly.
+This document outlines the known limitations and inherent risks of the MiSi Screener project. As a fully autonomous, predictive AI trading system, it operates under a different paradigm than traditional tools, and it's critical for all contributors and users to understand these challenges.
 
-## 1. Not a Predictive System
+## 1. The "Black Box" Problem
 
-- **MiSi Screener is not a forecasting tool.** It does not and will not provide price targets, entry/exit signals, or any form of market prediction. Its sole purpose is to provide a structured, data-driven assessment of the *current* market context. Misinterpreting its output as a predictive signal is a serious misuse of the system.
+-   **AI Decision-Making is Not Fully Transparent:** While we can see the inputs and outputs, the complex internal "thinking" of advanced AI models (especially LLMs) is not always fully interpretable. We cannot always know *precisely* why an AI made a specific decision out of a million possibilities. This is a fundamental trade-off for using this technology.
 
-## 2. Dependence on Data Quality
+## 2. No Guarantee of Profitability
 
-- **The system's output is only as good as its input data.** The `data/` pipeline includes integrity checks, but it cannot defend against all possible data issues. Gaps, errors, or low-quality data in the OHLCV feed will lead to unreliable analysis. In such cases, the system is designed to refuse analysis rather than provide a flawed output.
+-   **This is an Experimental Research Project:** The primary goal is to push the boundaries of AI in finance. There is absolutely **NO GUARANTEE** of profitability. The system can and likely will lose money, especially in its early stages.
+-   **Past Performance is Not Indicative of Future Results:** Even if the AI achieves periods of profitability, this is not a guarantee that it will continue to do so. Markets change, and the AI's models may not adapt perfectly.
 
-## 3. No Guarantee of Performance
+## 3. Dependence on Data Quality ("Garbage In, Garbage Out")
 
-- **The analysis provided by MiSi Screener does not guarantee any specific trading outcome.** It is a decision-support tool, not a trading strategy. The user is solely responsible for how they interpret and act upon the information provided.
+-   **The AI's decisions are only as good as the data it's fed.** Flawed, incomplete, or delayed data from our `data_sources` will lead to flawed analysis and potentially catastrophic trading decisions. A primary risk is the failure or corruption of a live data feed.
 
-## 4. Discretion is Required
+## 4. Risk of Overfitting and Curve-Fitting
 
-- **The system is a tool for augmenting, not replacing, human discretion.** It provides a quantitative view of the market but does not understand all market dynamics, news events, or nuanced contextual factors. Users must apply their own judgment and experience.
+-   In its learning process, the AI could become "overfitted" to historical data, meaning it learns the past so perfectly that it fails to adapt to new, live market conditions. We must constantly be vigilant against this and build in mechanisms to promote generalization.
 
-## 5. Lagging by Nature
+## 5. Systemic & Technical Risks
 
-- **All calculations are based on historical price data.** Therefore, the system's outputs are, by definition, lagging indicators of market conditions. They describe the recent past, not the future.
+-   **Bugs in Code:** A simple bug in an agent or a component could lead to significant financial loss.
+-   **API Failures:** The system relies on external APIs for both data and execution. The failure of an exchange's API during an open trade could be disastrous.
+-   **Latency:** Delays in receiving data or sending orders can dramatically impact the performance of short-term strategies.
 
-## When the System Will Reject the User
+## Critical Disclaimer
 
-The system is explicitly designed to refuse to provide analysis under certain conditions. This is a feature, not a bug. Expect the system to return a "BLOCK" or "REFUSE" status when:
-
-- **Input data fails integrity checks.** If the data is incomplete, noisy, or otherwise unsuitable, the system will not proceed.
-- **The Risk Governor detects extreme conditions.** During periods of extreme volatility, high systemic drawdown, or stressed correlations, the Risk Governor has the authority to block all other analytical outputs.
-- **The current market regime is incompatible with a requested analysis.** For example, the system will refuse to validate a breakout setup during a clear `Compression` regime.
-
-The system is designed to say "I don't know" or "No" far more often than it provides actionable context. This is core to its risk-first philosophy.
+**This is not a "plug-and-play" money-making machine.** It is a serious, complex, and high-risk software project. It should be treated as a tool for research and development. Anyone who chooses to run this system with real capital does so entirely at their own risk.

@@ -1,83 +1,49 @@
 # References
 
-This document lists the external, open-source references used to inform the concepts and architecture of MiSi Screener.
+This document lists the external, open-source references used to inform the concepts and architecture of the new, AI-driven MiSi Screener.
 
 ## Guiding Principles for Reference Integration
 
-- **NO PLAGIARISM:** We do not copy-paste code or fork repositories directly. All implementations are reinterpretations and redesigns tailored to the MiSi Screener's production environment.
-- **SYSTEM OVER NOTEBOOK:** Notebooks and research from references are treated as conceptual guides. The final output is always a modular, production-ready system.
-- **AUDITABLE CONCEPTS:** Every concept integrated must be traceable to its source, with a clear understanding of its function and limitations.
+- **Inspiration, Not Imitation:** We analyze other projects to understand architectural patterns and potential features, but all implementations are designed from scratch to fit the unique vision of MiSi Screener.
+- **Concept Over Code:** We are interested in the "what" and "why" of other systems, not the "how." We do not copy-paste code. The goal is to learn from the broader open-source community and build upon it.
+- **Traceability:** Every major architectural decision or feature set inspired by an external source must be documented here with a clear justification.
 
-## Additional References (Analysis Phase)
+---
 
-During the development of the `FeatureEngine`, the following repositories were analyzed. While direct code adoption was not possible or appropriate, they served to inform our first-principles implementation plan.
+## Key Inspirations for the AI-Agent Architecture
+
+The current architecture of MiSi Screener is conceptually inspired by the following projects, which demonstrate a multi-agent approach to financial analysis.
 
 -   **Sources:**
     -   `mulkymalikuldhrs/TradingAgents`
     -   `mulkymalikuldhrs/ai-agents-for-trading`
-    -   `mulkymalikuldhrs/quant-trading`
 -   **Date of Review:** 2024-05-22
-
-### Overall Findings
-
--   The `TradingAgents` and `ai-agents-for-trading` repositories were **REJECTED** as philosophically incompatible. Their reliance on predictive, non-deterministic LLM agents is the antithesis of the `MiSi Screener`'s core principles.
--   The `quant-trading` repository, while also rejected for its focus on backtesting and signal generation, provided a useful list of standard, deterministic indicators that are suitable for adaptation as descriptive features.
-
----
-
-## Primary Reference
-
-- **Source:** [quant-science GitHub Organization](https://github.com/quant-science)
-- **Date of Review:** 2023-10-27
 
 ### Concepts Adopted
 
-The following concepts were identified as valuable and aligned with the MiSi Screener philosophy:
+-   **Specialized Agent Roles:** The core architectural pattern of separating responsibilities into distinct agents (e.g., `TechnicalAnalyst`, `RiskManager`) is inspired by these repositories. This modular approach allows for greater specialization and scalability.
+-   **Agent Collaboration Workflow:** The idea of having Analyst agents produce structured reports that are then synthesized by a final `TraderAgent` is a key workflow concept we have adapted.
 
-- **Regime-Aware Analysis:** The idea of classifying market behavior into distinct regimes (e.g., expansion, compression) is a core inspiration. This aligns with our non-predictive, context-first approach.
-- **Volatility Measurement:** The use of robust volatility metrics (e.g., ATR-based, realized volatility) is adopted as a key input for regime classification and risk management.
-- **Factor Hygiene:** The emphasis on clean, validated data and well-defined feature extraction pipelines informs our `data/` module design.
+### Concepts Explicitly REJECTED
 
-### Concepts Explicitly NOT Adopted
+-   **Specific LLM Prompts and Logic:** We do not use the proprietary prompts or the specific internal logic from these repositories. Our agents' "thinking" process will be developed independently.
+-   **Direct Code Implementation:** No code from these repositories has been used. The inspiration is purely architectural.
 
-The following concepts and practices from the reference material were intentionally excluded:
+---
 
-- **Predictive Modeling:** Any models or components aimed at forecasting price direction or returns are rejected. This is in direct alignment with our non-predictive principle.
-- **Backtest-Driven Claims:** We do not incorporate performance metrics or backtested results from the reference notebooks. MiSi Screener's value is in its real-time contextual analysis, not simulated historical performance.
-- **Notebook-as-Product:** We explicitly avoid the practice of using research notebooks as final products. All logic is translated into robust, testable Python modules.
+## Feature Backlog Inspiration
 
-## Specific Implementations
+While our implementation is from first principles, the following repository has proven useful as a "checklist" or "backlog" of standard, deterministic indicators to include in our `components` library.
 
-### Market Structure Engine (`core/structure`)
+-   **Source:** `mulkymalikuldhrs/quant-trading`
 
--   **Reference:** First-Principles Design
--   **Justification:** During the research phase, direct inspection of code within potential reference repositories (like `quant-science`) was not possible due to technical limitations. To ensure the logic is 100% transparent, auditable, and deterministic, a "first-principles" approach was taken.
--   **Methodology:** The swing detection logic was built based on a simple, widely accepted, and non-ambiguous definition: a swing high is a candle with N lower highs on both sides, and a swing low is a candle with N higher lows on both sides.
--   **Advantages:** This approach guarantees zero reliance on black-box external code and aligns perfectly with the project's core value of auditability.
+### Concepts Adopted
 
-### Liquidity & Participation Engine (`core/liquidity`)
+-   **"Universe of Indicators":** This repository provides an excellent list of common technical indicators (MACD, RSI, Bollinger Bands, ATR, etc.). We use this list to guide the development priorities for our `components/technical_indicators.py` library.
 
--   **Reference:** First-Principles Design
--   **Justification:** Similar to the Market Structure Engine, the inability to reliably inspect external codebases necessitated a first-principles approach to ensure auditability and determinism.
--   **Methodology:**
-    -   **Participation Score:** Logic was developed based on the fundamental concepts of market participation, combining normalized volume and true range to create a dimensionless, percentile-ranked score. This avoids complex, opaque indicators.
-    -   **Liquidity Sweeps:** The detection logic is based on a clear, observable market behavior: the failure of price to hold beyond a recent high or low. This is a purely mechanical definition that requires no predictive or probabilistic assumptions.
--   **Advantages:** The logic is 100% transparent, avoids dependency on broker-specific data (like order flow), and remains robust even in low-volume conditions.
+### Concepts Explicitly REJECTED
 
-### Regime Classification Engine (`core/regime`)
+-   **Backtesting Framework:** The entire backtesting and signal-generation logic within the `quant-trading` scripts is explicitly rejected. In MiSi Screener, these indicators are used as **descriptive features for the AI**, not as prescriptive trading signals.
 
--   **Reference:** First-Principles Design, inspired by general quantitative finance concepts.
--   **Justification:** While the *idea* of regime classification was inspired by `quant-science`, the implementation is a pure, first-principles design to ensure it perfectly fits the MiSi Screener's architecture and philosophy.
--   **Methodology:**
-    -   **Multi-Factor Input:** The engine synthesizes multiple, non-correlated factors (volatility, structure stability, participation) into a single, unified classification. This is a robust design pattern in quantitative systems.
-    -   **Rule-Based Classifier:** A deterministic, rule-based classifier is used instead of a statistical or machine-learning model. This guarantees that the logic is 100% auditable, repeatable, and non-predictive. The rules are designed to map specific, observable market characteristics to the five official regimes.
--   **Advantages:** This approach avoids the "black box" problem of machine learning models and ensures that every regime classification can be explained and traced back to its root causes in the data.
-
-### Feature Engine (`data/features`)
-
--   **Reference:** First-Principles Design, using a curated list of standard indicators from `quant-trading` as a backlog.
--   **Justification:** The features needed by the core engines must be deterministic and mathematically sound. Rather than relying on potentially opaque third-party libraries, we implement the formulas for these indicators from scratch.
--   **Methodology:**
-    -   **Heikin-Ashi:** The formula for transforming OHLC candles into Heikin-Ashi candles is public knowledge and was implemented directly. This serves as a foundational data transformation feature.
-    -   **Standard Indicators (ATR, RSI, MACD, etc.):** The list of indicators to be implemented was inspired by the contents of the `quant-trading` repository. However, the implementation of each will be done from first principles based on their standard, publicly available mathematical definitions.
--   **Advantages:** This guarantees that every feature is 100% transparent, auditable, and free from any hidden predictive logic. It also makes the system self-contained and reduces external dependencies.
+---
+*Note: Previous references related to the deprecated, non-predictive version of this project have been removed to avoid confusion.*

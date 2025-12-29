@@ -1,38 +1,36 @@
-# TODO
+# MiSi Screener AI - Project Roadmap (TODO)
 
-This document tracks the planned future work for the MiSi Screener project.
+This document tracks the development roadmap for the new, AI-driven MiSi Screener.
 
-## Next Up: High Priority
+## Phase 1: Foundational AI Capabilities (In Progress)
 
-- [ ] **Implement the `Decision Support Layer` (`core/decision_support`):**
-    -   Create the logic to synthesize the outputs from all core engines into a single, non-prescriptive summary.
-- [ ] **Set up the basic `Data Pipeline` (`data/`):**
-    -   Implement the initial data loaders and validators.
-    -   Create the feature extraction logic to generate the inputs required by the core engines (e.g., ATR percentile, structure stability score).
-- [ ] **Create the initial `FastAPI` endpoint (`api/fastapi`):**
-    -   Build the first API endpoint to expose the output of the `Decision Support Layer`.
+-   [X] **Pivot to AI-Centric Architecture:** Overhaul project to support a multi-agent framework.
+-   [X] **Implement `TechnicalAnalystAgent` Skeleton:** Create the agent and the supporting `technical_indicators` component library.
+-   [X] **Add Initial Indicators (ATR, RSI, MACD):** Implement and test the first set of core indicators.
+-   [ ] **Flesh out the `FeatureEngine`:** Add a comprehensive suite of indicators to `components/technical_indicators.py` (e.g., Bollinger Bands, Stochastic Oscillator, etc.).
+-   [ ] **Implement `FundamentalAnalystAgent`:** Build the agent to ingest and analyze fundamental data (e.g., earnings reports, economic news).
+-   [ ] **Implement `SentimentAnalystAgent`:** Build the agent to connect to news APIs and social media to gauge market sentiment.
 
-## Medium Priority
+## Phase 2: Core Decision-Making and Risk
 
-- [ ] **Design and build the initial `Frontend` charting interface (`frontend/charts`):**
-    -   Visualize the outputs of the engines and the final decision support summary.
-- [ ] **Add Logging and Monitoring:**
-    -   Integrate a robust logging framework to track system behavior and decisions.
-- [ ] **Refactor Engines for Performance:**
-    -   Optimize the loops in the `MarketStructureEngine` and `LiquidityEngine` using vectorized operations for production performance.
+-   [ ] **Implement `TraderAgent` Logic:** Develop the core "thinking" process where the agent synthesizes reports from the analyst team.
+-   [ ] **Implement `RiskManagerAgent` Logic:** Build out the rules and logic for the risk agent to approve or veto trades based on portfolio-level constraints.
+-   [ ] **Build the Strategy Library:** Add a diverse range of initial strategies to the `strategies/` directory that the `TraderAgent` can choose from.
+-   [ ] **Create the `main.py` Orchestrator:** Implement the main loop that coordinates all agents, data flow, and decision-making.
 
-## Low Priority
+## Phase 3: Data and Execution
 
-- [ ] Explore alternative data sources.
-- [ ] Add more sophisticated feature engineering.
-- [ ] Enhance the documentation with more detailed examples.
+-   [ ] **Build `data_sources` Connectors:** Create robust connectors for market data (e.g., Binance, Alpaca) and news APIs.
+-   [ ] **Implement a Broker/Exchange Integration Layer:** Create the components needed to execute live or paper trades.
 
----
+## Phase 4: Dashboard and Visualization
 
-## Completed Tasks (v0.1.0)
+-   [ ] **Design the Frontend Dashboard:** Plan the UI/UX for visualizing the AI's analysis and the portfolio's performance.
+-   [ ] **Build the Dashboard API:** Create the FastAPI backend to serve data to the frontend.
+-   [ ] **Develop the Frontend Application:** Build the dashboard using a modern web framework.
 
--   ✅ **Implement the core logic for the `Market Structure Engine` (`core/structure`).**
--   ✅ **Implement the core logic for the `Liquidity & Participation Engine` (`core/liquidity`).**
--   ✅ **Implement the core logic for the `Regime Classification Engine` (`core/regime`).**
--   ✅ **Implement the core logic for the `Risk Governor` (`core/risk`).**
--   ✅ **Develop a comprehensive test suite for all core modules.**
+## Ongoing Tasks
+
+-   Continuously add more tests for all new components and agents.
+-   Improve documentation.
+-   Optimize performance.
