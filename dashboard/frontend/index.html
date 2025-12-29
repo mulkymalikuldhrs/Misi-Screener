@@ -5,43 +5,201 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MiSi Screener - AI Trading Intelligence</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #121212; color: #e0e0e0; margin: 0; padding: 2rem; }
-        .container { max-width: 900px; margin: auto; }
-        h1 { color: #4CAF50; }
-        #report-output { background-color: #1e1e1e; border: 1px solid #333; padding: 1rem; margin-top: 1rem; min-height: 400px; white-space: pre-wrap; }
-        #chat-container { margin-top: 2rem; display: flex; }
-        #chat-input { flex-grow: 1; padding: 0.8rem; background-color: #2c2c2c; border: 1px solid #444; color: #e0e0e0; }
-        button { padding: 0.8rem 1.2rem; background-color: #4CAF50; border: none; color: white; cursor: pointer; }
+        :root {
+            --bg-color: #1a1a1a;
+            --sidebar-bg: #1f1f1f;
+            --panel-bg: #242424;
+            --border-color: #333;
+            --text-color: #e0e0e0;
+            --text-muted: #888;
+            --accent-color: #00bfa5;
+            --accent-color-dark: #008c7a;
+            --danger-color: #f44336;
+            --warning-color: #ff9800;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 350px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar h1 {
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            margin-top: 0;
+        }
+        .sidebar p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        .report-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .report-panel h3 {
+            margin-top: 0;
+            font-size: 1rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        .report-panel pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.9rem;
+        }
+        .chat-container {
+            margin-top: auto;
+        }
+        .chat-input-group {
+            display: flex;
+            margin-top: 1rem;
+        }
+        #asset-input, #chat-input {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 0.8rem 1.2rem;
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: var(--accent-color-dark);
+        }
+        #status {
+            text-align: center;
+            padding: 1rem;
+            color: var(--warning-color);
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>MiSi Screener - AI Trading Intelligence Engine</h1>
-        <p>Welcome. Request a full institutional-grade analysis for any asset below.</p>
+    <div class="sidebar">
+        <h1>MiSi Screener</h1>
+        <p>Sovereign-Grade AI Trading Intelligence</p>
 
-        <div id="report-output">
-            <p>Analysis will appear here...</p>
+        <div class="chat-container">
+            <label for="asset-input">Asset:</label>
+            <input type="text" id="asset-input" placeholder="e.g., BTC-USD, EURUSD, AAPL" value="BTC-USD">
+
+            <label for="chat-input">Query:</label>
+            <input type="text" id="chat-input" placeholder="e.g., 'Generate full report'" value="Generate full institutional report">
+
+            <div class="chat-input-group">
+                <button onclick="generateReport()">Generate Report</button>
+            </div>
         </div>
+    </div>
 
-        <div id="chat-container">
-            <input type="text" id="chat-input" placeholder="Type your query, e.g., 'Analyze BTC-USD HTF trend'">
-            <button onclick="sendMessage()">Send</button>
+    <div class="main-content">
+        <div id="status">Generating report... Please wait.</div>
+        <div class="report-grid" id="report-grid">
+            <div class="report-panel" style="grid-column: 1 / -1; text-align: center;">
+                <p>Please enter an asset and query to generate a report.</p>
+            </div>
         </div>
     </div>
 
     <script>
-        function sendMessage() {
-            const input = document.getElementById('chat-input');
-            const output = document.getElementById('report-output');
-            const userQuery = input.value;
+        const assetInput = document.getElementById('asset-input');
+        const chatInput = document.getElementById('chat-input');
+        const reportGrid = document.getElementById('report-grid');
+        const statusDiv = document.getElementById('status');
 
-            if (!userQuery) return;
+        async function generateReport() {
+            const asset = assetInput.value;
+            const query = chatInput.value;
 
-            output.innerHTML = `<p><strong>User:</strong> ${userQuery}</p><p><strong>AI:</strong> Generating report... (This is a placeholder for the real API call)</p>`;
+            if (!asset || !query) {
+                alert("Please enter both an asset and a query.");
+                return;
+            }
 
-            // In the future, this will make a POST request to the /api/report endpoint.
+            // 1. Show loading state
+            reportGrid.innerHTML = '';
+            statusDiv.style.display = 'block';
 
-            input.value = '';
+            try {
+                // 2. Make API call to the backend
+                const response = await fetch('/api/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        asset: asset,
+                        user_query: query
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // 3. Render the report
+                renderReport(data);
+
+            } catch (error) {
+                console.error("API Error:", error);
+                reportGrid.innerHTML = `<div class="report-panel" style="grid-column: 1 / -1; text-align: center; color: var(--danger-color);"><p>Error generating report. Please check the console and ensure the backend server is running.</p></div>`;
+            } finally {
+                // 4. Hide loading state
+                statusDiv.style.display = 'none';
+            }
+        }
+
+        function renderReport(data) {
+            reportGrid.innerHTML = ''; // Clear previous report
+
+            for (const [moduleName, moduleData] of Object.entries(data.report)) {
+                const panel = document.createElement('div');
+                panel.className = 'report-panel';
+
+                const title = document.createElement('h3');
+                title.textContent = moduleName.replace(/_/g, ' ').toUpperCase();
+
+                const content = document.createElement('pre');
+                content.textContent = JSON.stringify(moduleData, null, 2);
+
+                panel.appendChild(title);
+                panel.appendChild(content);
+                reportGrid.appendChild(panel);
+            }
         }
     </script>
 </body>
