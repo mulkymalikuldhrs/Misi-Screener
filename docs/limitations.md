@@ -4,11 +4,11 @@ This document outlines the current limitations of the MiSi Screener system as of
 
 This serves as a roadmap for future development and helps manage user and contributor expectations.
 
-### 1. AI Orchestrator is a Placeholder
+### 1. AI Orchestrator is Rule-Based, Not a True LLM
 
--   **Limitation**: The `QueryOrchestrator` in `agents/` is a simple, rule-based engine. It uses basic keyword matching to determine user intent and does not contain a true Large Language Model (LLM) or advanced Natural Language Processing (NLP) capabilities.
--   **Impact**: It can only understand simple, predefined command structures (e.g., "news for AAPL"). It cannot handle complex, multi-step queries, conversational follow-ups, or ambiguity.
--   **Future Work**: The orchestrator is designed to be a "hot-swappable" component. A future version will integrate a real LLM (e.g., via the OpenAI API, Hugging Face, or a local model) to enable true natural language understanding.
+-   **Limitation**: The `AdvancedQueryOrchestrator` is a significant step forward, but it is still a rule-based engine. It uses more sophisticated regular expressions and logic to parse intents and multiple entities, but it does not possess true natural language understanding (NLU).
+-   **Impact**: It can now handle more complex queries like "news for AAPL and MSFT", but it cannot understand conversational context, follow-up questions, or queries with significant ambiguity. Performance will degrade on queries that do not follow a relatively clear "intent + entities" structure.
+-   **Future Work**: The `AIAgent` is designed to be the integration point for a true Large Language Model (LLM). Future work will involve replacing the `AdvancedQueryOrchestrator` with a component that calls an LLM (e.g., via the OpenAI API, Hugging Face, or a local model) to parse queries, enabling far more flexible and powerful conversational analysis.
 
 ### 2. Dependency on Public API Keys and Rate Limits
 

@@ -4,12 +4,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Any
 
-# Use absolute imports, assuming the project root is in the PYTHONPATH
+# Use absolute imports
 from data_sources.yfinance_connector import YFinanceConnector
 from data_sources.news_connector import NewsConnector
 from data_sources.alpha_vantage_connector import AlphaVantageConnector
-from agents.query_orchestrator import QueryOrchestrator
-
+from agents.advanced_orchestrator import AIAgent
 
 # --- FastAPI App Initialization ---
 app = FastAPI(
@@ -19,23 +18,19 @@ app = FastAPI(
 )
 
 # --- Service Instantiation ---
-# Instantiate our data connectors and the AI orchestrator.
 yfinance_connector = YFinanceConnector()
 news_connector = NewsConnector()
 alpha_vantage_connector = AlphaVantageConnector()
 
-
 # --- Application Registry ---
-# This dictionary maps an "app_name" to a function that implements its logic.
 APP_REGISTRY = {
     "get_historical_data": yfinance_connector.get_historical_data,
     "get_news_headlines": news_connector.get_headlines,
     "get_income_statement": alpha_vantage_connector.get_income_statement,
 }
 
-# Instantiate the AI orchestrator with the app registry
-ai_orchestrator = QueryOrchestrator(APP_REGISTRY)
-
+# Instantiate the main AI Agent with the app registry
+ai_agent = AIAgent(APP_REGISTRY)
 
 # --- API Endpoints ---
 class AIQuery(BaseModel):
@@ -44,41 +39,21 @@ class AIQuery(BaseModel):
 @app.post("/api/v1/ai-query")
 async def handle_ai_query(request: AIQuery = Body(...)):
     """
-    Handles a natural language query by parsing it, calling the correct application,
-    and returning the result.
+    Handles a natural language query using the advanced AI Agent.
+    The agent parses the query, orchestrates calls, and returns a composite result.
     """
-    app_name, params = ai_orchestrator.parse_query(request.query)
-
-    if not app_name:
-        raise HTTPException(status_code=400, detail="Could not understand the query. Please be more specific.")
-
-    # Directly get the function from the registry
-    app_function = APP_REGISTRY[app_name]
-
     try:
-        # Perform parameter validation and call the function directly
-        if app_name in ["get_historical_data", "get_income_statement"]:
-            ticker = params.get('ticker')
-            if not ticker:
-                raise HTTPException(status_code=400, detail=f"The 'ticker' parameter is required for the '{app_name}' app.")
-            data = app_function(ticker=ticker)
-            if app_name == "get_historical_data":
-                return {"app_name": app_name, "data": data.reset_index().to_dict(orient='records')}
-            return {"app_name": app_name, "data": data}
-
-        elif app_name == "get_news_headlines":
-            query = params.get('q') or params.get('ticker')
-            if not query:
-                raise HTTPException(status_code=400, detail="A 'q' or 'ticker' parameter is required for the 'get_news_headlines' app.")
-            data = app_function(query=query)
-            return {"app_name": app_name, "data": data}
-
-        else:
-            data = app_function()
-            return {"app_name": app_name, "data": data}
-
+        # Delegate the entire query handling process to the AI agent
+        response = await ai_agent.handle_query(request.query)
+        # We need to manually process DataFrame outputs for JSON serialization
+        for result in response.get('results', []):
+            if hasattr(result.get('data'), 'reset_index'): # Check if it's a DataFrame
+                 result['data'] = result['data'].reset_index().to_dict(orient='records')
+        return response
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while handling AI query: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred in the AI agent: {str(e)}")
 
 
 @app.get("/api/v1/invoke/{app_name}")
@@ -92,7 +67,6 @@ async def invoke_app(app_name: str, ticker: str = Query(None), q: str = Query(No
     app_function = APP_REGISTRY[app_name]
 
     try:
-        # Parameter validation remains here for direct invocations
         if app_name in ["get_historical_data", "get_income_statement"]:
             if not ticker:
                 raise HTTPException(status_code=400, detail=f"The 'ticker' parameter is required for the '{app_name}' app.")

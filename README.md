@@ -8,10 +8,11 @@ The system's core philosophy is to leverage cutting-edge AI to orchestrate compl
 
 ## Key Features
 
--   **Dual-Mode Operation**: Can be run headless as an autonomous agent or interactively via a sophisticated terminal UI.
--   **AI-Powered Orchestration**: A central AI agent parses natural language queries, invokes the appropriate analytical modules, and synthesizes results.
--   **Modular & Extensible Architecture**: Built with distinct, swappable components for data sources, analysis, and strategy execution, inspired by professional-grade systems like OpenBB.
--   **Bloomberg-Style Terminal**: A multi-panel, command-driven user interface for rapid, keyboard-first analysis.
+-   **Dual-Mode Operation**: Architected to function as a headless autonomous agent or an interactive terminal.
+-   **Advanced AI Orchestration**: A central AI agent parses complex, multi-asset natural language queries (e.g., "news for AAPL and MSFT"), orchestrates the necessary API calls, and synthesizes the results.
+-   **Interactive Charting**: Real-time, interactive candlestick charts powered by TradingView Lightweight Charts™ are available directly within the terminal panels.
+-   **Modular & Extensible Architecture**: Built with distinct components for data sources, analysis, and AI, inspired by professional-grade systems like OpenBB.
+-   **Bloomberg-Style Terminal**: A multi-panel, command-driven user interface for rapid, keyboard-first analysis, featuring a powerful command palette (`Ctrl+K`).
 -   **Real-Time Data Integration**: Connects to a wide array of free, public APIs for market data, news, and fundamental analysis.
 
 ## Tech Stack

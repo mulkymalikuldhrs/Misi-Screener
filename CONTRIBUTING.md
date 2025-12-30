@@ -58,8 +58,9 @@ We welcome contributions in several forms, primarily by adding new Data Source C
     *   Add a new entry to the `APPS` array in the JavaScript section. Define the `command` (e.g., `/econ`), a `description`, and the `app_name` (which must match the key in the `APP_REGISTRY`).
 
 3.  **Implement the Frontend Renderer**:
-    *   In the `renderPanelContent` function in the JavaScript section, add a new `else if` block for your `app_name`.
-    *   Write the logic to parse the JSON data returned by your connector and render it as HTML (e.g., a table, a list, or a simple text display).
+    *   Open the `renderSingleAsset` function in the JavaScript section. Add a new `else if` block for your `app_name`.
+    *   Write the logic to parse the JSON data returned by your connector and render it as HTML.
+    *   **For complex visualizations (like charts)**, you can directly manipulate the DOM and initialize JavaScript libraries within the `container` element passed to the function. See the `get_historical_data` case for a live example of how to implement a TradingView chart.
 
 ## Running Tests
 

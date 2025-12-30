@@ -17,8 +17,10 @@ Misi-Screener/
 ### 1. Agents (`agents/`)
 
 This is the "brain" of the system.
--   **`query_orchestrator.py`**: A foundational agent responsible for parsing natural language queries from the user. It uses intent recognition and entity extraction to map a query like *"Show me the latest news for AAPL"* to a specific, executable function call (e.g., `get_news_headlines(ticker='AAPL')`).
--   **(Future) Autonomous Agents**: This directory will house the logic for agents that can run independently, such as a `MarketScannerAgent` that continuously monitors for specific conditions or a `StrategyExecutionAgent` that manages trades.
+-   **`advanced_orchestrator.py`**: This file contains the core logic for intelligent query handling.
+    -   **`AdvancedQueryOrchestrator`**: A sophisticated parsing class that can identify a user's intent (e.g., asking for news) and extract multiple entities (e.g., `AAPL`, `MSFT`) from a single query.
+    -   **`AIAgent`**: The primary operational agent. It uses the orchestrator to parse a query, plans and executes the necessary data-fetching calls for each identified entity, and then aggregates the results into a single, structured response.
+-   **(Future) Autonomous Agents**: This directory is designed to house the logic for agents that can run independently, such as a `MarketScannerAgent` that continuously monitors for specific conditions or a `StrategyExecutionAgent` that manages trades.
 
 ### 2. Data Sources (`data_sources/`)
 

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MiSi Terminal</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -47,11 +48,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
         .panel-content {
             flex-grow: 1;
             padding: 12px;
             overflow-y: auto;
+            position: relative;
         }
         .empty-panel-cta {
             display: flex;
@@ -60,6 +63,7 @@
             height: 100%;
             flex-direction: column;
             color: var(--text-muted);
+            cursor: pointer;
         }
         .empty-panel-cta kbd {
             background-color: var(--border-color);
@@ -133,6 +137,15 @@
             text-align: right;
             font-weight: 500;
         }
+        /* Styles for multi-asset results */
+        .multi-asset-section {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .multi-asset-section:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
@@ -142,7 +155,7 @@
 
     <div class="command-palette-overlay" id="command-palette-overlay">
         <div class="command-palette">
-            <input type="text" id="cmd-input" placeholder="Enter command (e.g., /news AAPL)">
+            <input type="text" id="cmd-input" placeholder="Enter command or AI query...">
             <ul id="cmd-results"></ul>
         </div>
     </div>
@@ -154,16 +167,14 @@
             const cmdInput = document.getElementById('cmd-input');
             const cmdResults = document.getElementById('cmd-results');
 
-            let activePanel = null; // To track which panel triggered the command palette
+            let activePanel = null;
 
-            // --- Available Applications ---
             const APPS = [
                 { command: '/news', description: 'Fetch news for a ticker', app_name: 'get_news_headlines' },
                 { command: '/chart', description: 'Display historical price chart', app_name: 'get_historical_data' },
                 { command: '/FA', description: 'Fetch Fundamental Analysis (Income Statement)', app_name: 'get_income_statement' },
             ];
 
-            // --- Panel Management ---
             function renderPanels() {
                 gridContainer.innerHTML = '';
                 for (let i = 0; i < 4; i++) {
@@ -173,18 +184,15 @@
                     panel.innerHTML = `
                         <div class="panel-content">
                             <div class="empty-panel-cta">
-                                <p>Press <kbd>Ctrl+K</kbd> to open command palette</p>
+                                <p>Click or press <kbd>Ctrl+K</kbd> to start</p>
                             </div>
                         </div>
                     `;
-                    panel.querySelector('.empty-panel-cta').addEventListener('click', () => {
-                        openCommandPalette(panel);
-                    });
+                    panel.querySelector('.empty-panel-cta').addEventListener('click', () => openCommandPalette(panel));
                     gridContainer.appendChild(panel);
                 }
             }
 
-            // --- Command Palette Logic ---
             function openCommandPalette(panel) {
                 activePanel = panel;
                 commandPaletteOverlay.style.display = 'flex';
@@ -201,7 +209,10 @@
             function updateCmdResults() {
                 const query = cmdInput.value.toLowerCase();
                 cmdResults.innerHTML = '';
-                if (!query.startsWith('/')) return;
+                if (!query.startsWith('/')) {
+                    cmdResults.innerHTML = `<li>Press Enter to send AI query: "<em>${query}</em>"</li>`;
+                    return;
+                }
 
                 const filteredApps = APPS.filter(app => app.command.includes(query.split(' ')[0]));
                 filteredApps.forEach(app => {
@@ -215,43 +226,38 @@
             }
 
             async function executeCommand(selectedLi) {
-                const command = selectedLi.dataset.command;
-                const appName = selectedLi.dataset.appName;
-                const fullInput = cmdInput.value.split(' ');
-                const args = fullInput.slice(1);
+                const isAiQuery = !selectedLi;
+                const fullInput = cmdInput.value;
 
                 if (!activePanel) return;
 
-                const ticker = args[0] ? args[0].toUpperCase() : null;
-                if (!ticker) {
-                    alert("Please provide a ticker (e.g., /news AAPL)");
-                    return;
-                }
+                let appName, endpoint, payload;
 
-                // Update panel header and show a loading state
-                activePanel.innerHTML = `
-                    <div class="panel-header">
-                        <span>${command} ${ticker}</span>
-                        <span>Loading...</span>
-                    </div>
-                    <div class="panel-content" id="panel-content-${activePanel.dataset.panelId}">
-                        <!-- Content will be loaded here -->
-                    </div>
-                `;
+                if (isAiQuery) {
+                    appName = "AI Query";
+                    endpoint = '/api/v1/ai-query';
+                    payload = { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ query: fullInput }) };
+                    activePanel.innerHTML = `<div class="panel-header"><span>AI Query: ${fullInput}</span><span>Loading...</span></div><div class="panel-content" id="panel-content-${activePanel.dataset.panelId}"></div>`;
+                } else {
+                    const command = selectedLi.dataset.command;
+                    appName = selectedLi.dataset.appName;
+                    const ticker = fullInput.split(' ')[1] ? fullInput.split(' ')[1].toUpperCase() : null;
+                    if (!ticker) { alert("Please provide a ticker (e.g., /news AAPL)"); return; }
+                    endpoint = `/api/v1/invoke/${appName}?ticker=${ticker}&q=${ticker}`;
+                    payload = { method: 'GET' };
+                    activePanel.innerHTML = `<div class="panel-header"><span>${command} ${ticker}</span><span>Loading...</span></div><div class="panel-content" id="panel-content-${activePanel.dataset.panelId}"></div>`;
+                }
 
                 closeCommandPalette();
 
                 try {
-                    // This is where we fetch data from our new backend
-                    const response = await fetch(`/api/v1/invoke/${appName}?ticker=${ticker}&q=${ticker}`);
+                    const response = await fetch(endpoint, payload);
                     if (!response.ok) {
                         const errorData = await response.json();
                         throw new Error(`API Error: ${errorData.detail || response.statusText}`);
                     }
                     const data = await response.json();
-
-                    // Render the data into the panel
-                    renderPanelContent(activePanel, data, appName);
+                    renderPanelContent(activePanel, data, isAiQuery ? 'ai_query' : appName);
                 } catch (error) {
                     const contentDiv = activePanel.querySelector(`#panel-content-${activePanel.dataset.panelId}`);
                     contentDiv.innerHTML = `<p style="color: #ef5350;">Error: ${error.message}</p>`;
@@ -261,70 +267,85 @@
             function formatNumber(num) {
                 if (num === 'None' || num === null) return 'N/A';
                 const number = BigInt(num);
-                if (number >= 1_000_000_000_000) {
-                    return (Number(number) / 1_000_000_000_000).toFixed(2) + 'T';
-                }
-                if (number >= 1_000_000_000) {
-                    return (Number(number) / 1_000_000_000).toFixed(2) + 'B';
-                }
-                if (number >= 1_000_000) {
-                    return (Number(number) / 1_000_000).toFixed(2) + 'M';
-                }
+                if (number >= 1_000_000_000_000) return (Number(number) / 1_000_000_000_000).toFixed(2) + 'T';
+                if (number >= 1_000_000_000) return (Number(number) / 1_000_000_000).toFixed(2) + 'B';
+                if (number >= 1_000_000) return (Number(number) / 1_000_000).toFixed(2) + 'M';
                 return Number(number).toLocaleString();
             }
 
-            function renderPanelContent(panel, data, appName) {
+            function renderPanelContent(panel, responseData, appIdentifier) {
                 const contentDiv = panel.querySelector(`#panel-content-${panel.dataset.panelId}`);
+                contentDiv.innerHTML = '';
+
+                if (appIdentifier === 'ai_query') {
+                    // Handle complex AI response
+                    responseData.results.forEach(result => {
+                        const section = document.createElement('div');
+                        section.className = 'multi-asset-section';
+                        section.innerHTML = `<h3>${result.ticker}</h3>`;
+
+                        const dataNode = document.createElement('div');
+                        renderSingleAsset(dataNode, result.data, responseData.app_name);
+                        section.appendChild(dataNode);
+
+                        contentDiv.appendChild(section);
+                    });
+                } else {
+                    // Handle simple /invoke response
+                    renderSingleAsset(contentDiv, responseData, appIdentifier);
+                }
+            }
+
+            function renderSingleAsset(container, data, appName) {
                 if (!data || Object.keys(data).length === 0 || (Array.isArray(data) && data.length === 0)) {
-                    contentDiv.innerHTML = '<p>No data found. The API may have call frequency limits.</p>';
+                    container.innerHTML = '<p>No data found. The API may have call frequency limits.</p>';
                     return;
                 }
 
-                let html = '';
                 if (appName === 'get_news_headlines') {
-                    html = '<ul>';
+                    let html = '<ul>';
                     data.forEach(article => {
-                        html += `<li><a href="${article.url}" target="_blank">${article.title}</a><p>${article.source.name}</p></li>`;
-                    });
-                     html += '</ul>';
-                } else if (appName === 'get_historical_data') {
-                    html = '<ul>';
-                     data.slice(0, 10).forEach(row => {
-                        html += `<li>${new Date(row.Date).toLocaleDateString()}: Close $${row.Close.toFixed(2)}</li>`;
+                        html += `<li><a href="${article.url}" target="_blank" rel="noopener noreferrer">${article.title}</a><p>${article.source.name}</p></li>`;
                     });
                     html += '</ul>';
+                    container.innerHTML = html;
                 } else if (appName === 'get_income_statement') {
                     const report = data.annualReports[0];
-                    if (!report) {
-                        contentDiv.innerHTML = '<p>No annual report data found.</p>';
-                        return;
-                    }
-                    html = `<h3>Income Statement (Annual)</h3><h4>${report.fiscalDateEnding}</h4><table class="fa-table">`;
-                    const metrics = {
-                        'Total Revenue': report.totalRevenue,
-                        'Gross Profit': report.grossProfit,
-                        'Operating Income': report.operatingIncome,
-                        'Net Income': report.netIncome,
-                        'EBITDA': report.ebitda,
-                    };
+                    if (!report) { container.innerHTML = '<p>No annual report data found.</p>'; return; }
+                    let html = `<h4>Income Statement (Annual)</h4><h5>${report.fiscalDateEnding}</h5><table class="fa-table">`;
+                    const metrics = {'Total Revenue': report.totalRevenue, 'Gross Profit': report.grossProfit, 'Operating Income': report.operatingIncome, 'Net Income': report.netIncome, 'EBITDA': report.ebitda};
                     for (const [key, value] of Object.entries(metrics)) {
                         html += `<tr><td>${key}</td><td>${formatNumber(value)}</td></tr>`;
                     }
                     html += '</table>';
+                    container.innerHTML = html;
+                } else if (appName === 'get_historical_data') {
+                    const chart = LightweightCharts.createChart(container, {
+                        width: container.clientWidth, height: container.clientHeight,
+                        layout: { backgroundColor: 'var(--panel-bg)', textColor: 'var(--text-color)' },
+                        grid: { vertLines: { color: 'var(--border-color)' }, horzLines: { color: 'var(--border-color)' } },
+                    });
+                    const candleSeries = chart.addCandlestickSeries({ upColor: 'var(--accent-color)', downColor: '#ef5350', borderDownColor: '#ef5350', borderUpColor: 'var(--accent-color)', wickDownColor: '#ef5350', wickUpColor: 'var(--accent-color)' });
+                    const formattedData = data.map(d => ({ time: new Date(d.Date).getTime() / 1000, open: d.Open, high: d.High, low: d.Low, close: d.Close }));
+                    candleSeries.setData(formattedData);
+                    chart.timeScale().fitContent();
+                    new ResizeObserver(entries => {
+                        if (entries.length === 0 || entries[0].target !== container) { return; }
+                        const { width, height } = entries[0].contentRect;
+                        chart.resize(width, height);
+                    }).observe(container);
                 }
-                contentDiv.innerHTML = html;
             }
 
-            // --- Event Listeners ---
             window.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && commandPaletteOverlay.style.display === 'flex') {
+                    const selected = cmdResults.querySelector('li');
+                    executeCommand(selected);
+                }
                 if (e.ctrlKey && e.key === 'k') {
                     e.preventDefault();
-                    if (commandPaletteOverlay.style.display === 'flex') {
-                        closeCommandPalette();
-                    } else {
-                        // If no panel is active, maybe open for the first one? For now, requires click.
-                        console.log("Press Ctrl+K inside an empty panel or click on it.")
-                    }
+                    if (commandPaletteOverlay.style.display === 'flex') closeCommandPalette();
+                    else openCommandPalette(gridContainer.querySelector('.grid-panel')); // Open for first panel if none active
                 }
                 if (e.key === 'Escape' && commandPaletteOverlay.style.display === 'flex') {
                     closeCommandPalette();
@@ -333,12 +354,9 @@
 
             cmdInput.addEventListener('input', updateCmdResults);
             commandPaletteOverlay.addEventListener('click', (e) => {
-                if (e.target === commandPaletteOverlay) {
-                    closeCommandPalette();
-                }
+                if (e.target === commandPaletteOverlay) closeCommandPalette();
             });
 
-            // --- Initialization ---
             renderPanels();
         });
     </script>
