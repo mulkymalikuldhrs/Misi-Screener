@@ -65,7 +65,8 @@ The project is architected to support its dual-mode vision:
     Open your web browser and navigate to `http://127.0.0.1:8000`. Click on any panel to open the command palette (`Ctrl+K`).
 
 
-   Let's Building market, AI, and decision intelligence systems.
+   Let's Building market, AI, Other and decision intelligence systems.
 Structure, risk, repeatability over hype.
 I am Solo. Open to serious contributors.
-Dhaher & Contributors | mulkymalikuldhr@mail.comhttps://github.com/mulkymalikuldhrs
+Dhaher & Contributors | mulkymalikuldhr@mail.com
+https://github.com/mulkymalikuldhrs
