@@ -1,30 +1,35 @@
-# Limitations & Risks of an Autonomous AI Trading System
+# Current System Limitations
 
-This document outlines the known limitations and inherent risks of the MiSi Screener project. As a fully autonomous, predictive AI trading system, it operates under a different paradigm than traditional tools, and it's critical for all contributors and users to understand these challenges.
+This document outlines the current limitations of the MiSi Screener system as of v1.0. While the foundational architecture is robust and scalable, it is important to be transparent about what is not yet implemented.
 
-## 1. The "Black Box" Problem
+This serves as a roadmap for future development and helps manage user and contributor expectations.
 
--   **AI Decision-Making is Not Fully Transparent:** While we can see the inputs and outputs, the complex internal "thinking" of advanced AI models (especially LLMs) is not always fully interpretable. We cannot always know *precisely* why an AI made a specific decision out of a million possibilities. This is a fundamental trade-off for using this technology.
+### 1. AI Orchestrator is a Placeholder
 
-## 2. No Guarantee of Profitability
+-   **Limitation**: The `QueryOrchestrator` in `agents/` is a simple, rule-based engine. It uses basic keyword matching to determine user intent and does not contain a true Large Language Model (LLM) or advanced Natural Language Processing (NLP) capabilities.
+-   **Impact**: It can only understand simple, predefined command structures (e.g., "news for AAPL"). It cannot handle complex, multi-step queries, conversational follow-ups, or ambiguity.
+-   **Future Work**: The orchestrator is designed to be a "hot-swappable" component. A future version will integrate a real LLM (e.g., via the OpenAI API, Hugging Face, or a local model) to enable true natural language understanding.
 
--   **This is an Experimental Research Project:** The primary goal is to push the boundaries of AI in finance. There is absolutely **NO GUARANTEE** of profitability. The system can and likely will lose money, especially in its early stages.
--   **Past Performance is Not Indicative of Future Results:** Even if the AI achieves periods of profitability, this is not a guarantee that it will continue to do so. Markets change, and the AI's models may not adapt perfectly.
+### 2. Dependency on Public API Keys and Rate Limits
 
-## 3. Dependence on Data Quality ("Garbage In, Garbage Out")
+-   **Limitation**: The system relies entirely on free, public APIs for all its data (`NewsAPI`, `Alpha Vantage`, etc.). These APIs have strict rate limits (e.g., a certain number of calls per minute or per day).
+-   **Impact**: Heavy use of the terminal in a short period can temporarily exhaust the API keys, leading to data failing to load in the UI. There is currently no caching mechanism to mitigate this.
+-   **Future Work**: A caching layer (e.g., using Redis) will be implemented to store recent API calls, reducing redundant fetches and making the system more resilient to rate limiting. Support for premium/paid API keys with higher limits could also be added.
 
--   **The AI's decisions are only as good as the data it's fed.** Flawed, incomplete, or delayed data from our `data_sources` will lead to flawed analysis and potentially catastrophic trading decisions. A primary risk is the failure or corruption of a live data feed.
+### 3. No Data Persistence or User Management
 
-## 4. Risk of Overfitting and Curve-Fitting
+-   **Limitation**: The terminal is stateless. There is no database, user accounts, or mechanism to save layouts, preferences, or analysis.
+-   **Impact**: Every time the application is loaded, it starts with a blank slate.
+-   **Future Work**: A database backend (e.g., PostgreSQL or SQLite) and a user authentication system will be added to enable persistent workspaces, saved queries, and personalized settings.
 
--   In its learning process, the AI could become "overfitted" to historical data, meaning it learns the past so perfectly that it fails to adapt to new, live market conditions. We must constantly be vigilant against this and build in mechanisms to promote generalization.
+### 4. Limited Set of "Apps" and Connectors
 
-## 5. Systemic & Technical Risks
+-   **Limitation**: The initial release only includes connectors and applications for basic market data (`/chart`), news (`/news`), and company fundamentals (`/FA`).
+-   **Impact**: A vast number of analytical domains are not yet covered, such as economic data, options chains, alternative data, social sentiment analysis, etc.
+-   **Future Work**: The `data_sources` and `dashboard` modules are designed for easy extension. New connectors and terminal apps will be a primary focus of ongoing development.
 
--   **Bugs in Code:** A simple bug in an agent or a component could lead to significant financial loss.
--   **API Failures:** The system relies on external APIs for both data and execution. The failure of an exchange's API during an open trade could be disastrous.
--   **Latency:** Delays in receiving data or sending orders can dramatically impact the performance of short-term strategies.
+### 5. No Autonomous Agent Capabilities
 
-## Critical Disclaimer
-
-**This is not a "plug-and-play" money-making machine.** It is a serious, complex, and high-risk software project. It should be treated as a tool for research and development. Anyone who chooses to run this system with real capital does so entirely at their own risk.
+-   **Limitation**: While the architecture is designed to support them, there are currently no autonomous agents implemented. The system can only be used interactively through the terminal.
+-   **Impact**: The "dual-mode" vision is not yet realized. The system cannot perform background monitoring, send alerts, or execute strategies on its own.
+-   **Future Work**: Developing the first autonomous agents (e.g., `MarketScannerAgent`) is a key priority on the project roadmap.
