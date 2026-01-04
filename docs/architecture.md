@@ -1,50 +1,52 @@
 # System Architecture
 
-The MiSi Screener is designed as a modular, multi-component system to support its dual mission of autonomous operation and interactive analysis. The architecture is divided into several key directories at the project root.
+The MiSi AI Hedge Fund platform is architected as a complete, end-to-end automated trading system. It is composed of several specialized, decoupled components that work in concert to find, execute, and manage trades.
 
 ```
 Misi-Screener/
 │
-├── agents/               # Core AI logic and orchestration
+├── strategies/           # Definitive YAML files for trading strategies
+├── agents/               # The "brains": core logic for signals, portfolio, and orchestration
+├── execution/            # Simulated broker for paper trading
 ├── data_sources/         # Connectors for external data APIs
-├── dashboard/            # The interactive web terminal (frontend + backend)
-│   ├── backend/
-│   └── frontend/
-├── components/           # (Future) Reusable, high-level analytical modules
-└── tests/                # Unit and integration tests
+├── dashboard/            # The interactive web terminal for control and monitoring
+├── tests/                # Unit and integration tests
+└── run_backtest.py       # The standalone backtesting engine
 ```
 
-### 1. Agents (`agents/`)
+### Core Trading Loop Components
 
-This is the "brain" of the system.
--   **`advanced_orchestrator.py`**: This file contains the core logic for intelligent query handling.
-    -   **`AdvancedQueryOrchestrator`**: A sophisticated parsing class that can identify a user's intent (e.g., asking for news) and extract multiple entities (e.g., `AAPL`, `MSFT`) from a single query.
-    -   **`AIAgent`**: The primary operational agent. It uses the orchestrator to parse a query, plans and executes the necessary data-fetching calls for each identified entity, and then aggregates the results into a single, structured response.
--   **(Future) Autonomous Agents**: This directory is designed to house the logic for agents that can run independently, such as a `MarketScannerAgent` that continuously monitors for specific conditions or a `StrategyExecutionAgent` that manages trades.
+The autonomous trading functionality is driven by a set of cooperative agents:
 
-### 2. Data Sources (`data_sources/`)
+1.  **`SignalAgent` (`agents/signal_agent.py`)**
+    -   **Role**: Strategy interpretation and signal generation.
+    -   **Function**: Reads a strategy `.yml` file from the `strategies/` directory, calculates the necessary technical indicators (e.g., RSI) using real market data, and produces a discrete trading signal (`BUY`, `SELL`, or `HOLD`).
 
-This directory follows the principles of a data abstraction layer, inspired by OpenBB. It contains all the code necessary to connect to and retrieve data from external, third-party APIs.
--   Each file is a **Connector** for a specific service (e.g., `yfinance_connector.py`, `alpha_vantage_connector.py`).
--   This approach decouples the rest of the system from the specifics of any single data provider. If an API changes or needs to be replaced, only the corresponding connector needs to be updated.
+2.  **`PortfolioManager` (`agents/portfolio_manager.py`)**
+    -   **Role**: The central state and risk management brain.
+    -   **Function**: A stateful service that tracks the portfolio's cash balance, open positions, and trade history. Crucially, it is responsible for **position sizing**, ensuring that every trade adheres to the risk parameters defined in the strategy (e.g., risk 1% of the portfolio per trade).
 
-### 3. Dashboard (`dashboard/`)
+3.  **`PaperTradingBroker` (`execution/paper_trading_broker.py`)**
+    -   **Role**: Simulated trade execution.
+    -   **Function**: Acts as a virtual broker. It takes an approved and sized order from the `PortfolioManager` and "executes" it at a simulated market price. It is designed to be extensible for future additions like slippage and commission modeling.
 
-This is the human-in-the-loop interface for the system—the interactive terminal.
--   **`frontend/`**: A single-page application built with vanilla HTML, CSS, and JavaScript. It implements a multi-panel, grid-based layout and a command palette (`Ctrl+K`) for invoking commands. It is a "thin client" that primarily renders data received from the backend.
--   **`backend/`**: A Python FastAPI server with two primary roles:
-    1.  It serves the static `index.html` and its assets.
-    2.  It exposes the API that the frontend and other system components use.
+4.  **`HedgeFundMasterAgent` (`agents/master_agent.py`)**
+    -   **Role**: The master orchestrator.
+    -   **Function**: Runs the main autonomous **trading loop**. In each iteration, it:
+        1.  Invokes the `SignalAgent` to get a new signal.
+        2.  If a signal is generated, it consults the `PortfolioManager` to check for viability and calculate the correct position size.
+        3.  If the trade is approved, it commands the `PaperTradingBroker` to execute the trade.
+        4.  This loop is run in a background thread, allowing the system to trade autonomously.
 
-#### Key API Endpoints:
--   `GET /api/v1/invoke/{app_name}`: A direct, command-based endpoint that executes a specific analytical function (e.g., `get_income_statement`) from the `APP_REGISTRY`.
--   `POST /api/v1/ai-query`: The natural language endpoint. It takes a JSON object with a `query` string, passes it to the `QueryOrchestrator`, and then routes the resulting command to the `invoke` logic.
+### Control and Monitoring
 
-### 4. Components (`components/`)
+-   **`dashboard/`**: The web terminal serves as the command center.
+    -   The **FastAPI Backend** exposes endpoints (`/api/v1/agent/start`, `/api/v1/agent/stop`) that directly control the `HedgeFundMasterAgent`. It also provides an endpoint (`/api/v1/portfolio/state`) to query the `PortfolioManager` for real-time updates.
+    -   The **Frontend UI** provides buttons to start and stop the agent and a `/portfolio` command to visualize the current state of the hedge fund.
 
-This directory is reserved for higher-level, reusable analytical modules that are more complex than a simple data connector. Future examples might include:
--   A proprietary risk management model.
--   A complex technical analysis indicator library.
--   A portfolio construction and optimization engine.
+### Strategy Validation
 
-These components can be called upon by agents or invoked directly through the terminal to perform their specific analysis.
+-   **`run_backtest.py`**: The "No Gimmick" Backtesting Engine.
+    -   This is a standalone command-line script that provides a robust way to validate strategies before deployment.
+    -   It uses the **exact same `SignalAgent`, `PortfolioManager`, and a slightly modified `BacktestingBroker`** to run a strategy over a historical dataset.
+    -   By iterating through historical price data tick-by-tick and running the full agent logic at each step, it provides a realistic simulation of how a strategy would have performed, free of lookahead bias.

@@ -146,11 +146,48 @@
         .multi-asset-section:last-child {
             border-bottom: none;
         }
+        /* New styles for the operational dashboard */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .control-panel {
+            padding: 10px;
+            background-color: var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+        .control-button {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--accent-color-dark);
+            color: var(--accent-color);
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .control-button:hover {
+            background-color: var(--accent-color);
+            color: var(--panel-bg);
+        }
+        #agent-status {
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
     </style>
 </head>
 <body>
-    <div class="grid-container" id="grid-container">
-        <!-- Panels will be dynamically inserted here -->
+    <div class="main-container">
+        <div class="control-panel">
+            <button id="start-agent-btn" class="control-button">Start Agent</button>
+            <button id="stop-agent-btn" class="control-button">Stop Agent</button>
+            <span id="agent-status">Agent Status: Inactive</span>
+        </div>
+        <div class="grid-container" id="grid-container">
+            <!-- Panels will be dynamically inserted here -->
+        </div>
     </div>
 
     <div class="command-palette-overlay" id="command-palette-overlay">
@@ -168,11 +205,13 @@
             const cmdResults = document.getElementById('cmd-results');
 
             let activePanel = null;
+            const agentStatus = document.getElementById('agent-status');
 
             const APPS = [
                 { command: '/news', description: 'Fetch news for a ticker', app_name: 'get_news_headlines' },
                 { command: '/chart', description: 'Display historical price chart', app_name: 'get_historical_data' },
                 { command: '/FA', description: 'Fetch Fundamental Analysis (Income Statement)', app_name: 'get_income_statement' },
+                { command: '/portfolio', description: 'Show current portfolio status', app_name: 'get_portfolio_state' },
             ];
 
             function renderPanels() {
@@ -298,44 +337,71 @@
 
             function renderSingleAsset(container, data, appName) {
                 if (!data || Object.keys(data).length === 0 || (Array.isArray(data) && data.length === 0)) {
-                    container.innerHTML = '<p>No data found. The API may have call frequency limits.</p>';
+                    container.innerHTML = '<p>No data found or agent not started.</p>';
                     return;
                 }
 
                 if (appName === 'get_news_headlines') {
                     let html = '<ul>';
-                    data.forEach(article => {
-                        html += `<li><a href="${article.url}" target="_blank" rel="noopener noreferrer">${article.title}</a><p>${article.source.name}</p></li>`;
-                    });
-                    html += '</ul>';
-                    container.innerHTML = html;
+                    data.forEach(article => { html += `<li><a href="${article.url}" target="_blank" rel="noopener noreferrer">${article.title}</a><p>${article.source.name}</p></li>`; });
+                    container.innerHTML = html + '</ul>';
                 } else if (appName === 'get_income_statement') {
-                    const report = data.annualReports[0];
+                    const report = data.annualReports && data.annualReports[0];
                     if (!report) { container.innerHTML = '<p>No annual report data found.</p>'; return; }
                     let html = `<h4>Income Statement (Annual)</h4><h5>${report.fiscalDateEnding}</h5><table class="fa-table">`;
                     const metrics = {'Total Revenue': report.totalRevenue, 'Gross Profit': report.grossProfit, 'Operating Income': report.operatingIncome, 'Net Income': report.netIncome, 'EBITDA': report.ebitda};
-                    for (const [key, value] of Object.entries(metrics)) {
-                        html += `<tr><td>${key}</td><td>${formatNumber(value)}</td></tr>`;
-                    }
-                    html += '</table>';
-                    container.innerHTML = html;
+                    for (const [key, value] of Object.entries(metrics)) { html += `<tr><td>${key}</td><td>${formatNumber(value)}</td></tr>`; }
+                    container.innerHTML = html + '</table>';
                 } else if (appName === 'get_historical_data') {
-                    const chart = LightweightCharts.createChart(container, {
-                        width: container.clientWidth, height: container.clientHeight,
-                        layout: { backgroundColor: 'var(--panel-bg)', textColor: 'var(--text-color)' },
-                        grid: { vertLines: { color: 'var(--border-color)' }, horzLines: { color: 'var(--border-color)' } },
-                    });
+                    const chart = LightweightCharts.createChart(container, { width: container.clientWidth, height: container.clientHeight, layout: { backgroundColor: 'var(--panel-bg)', textColor: 'var(--text-color)' }, grid: { vertLines: { color: 'var(--border-color)' }, horzLines: { color: 'var(--border-color)' } } });
                     const candleSeries = chart.addCandlestickSeries({ upColor: 'var(--accent-color)', downColor: '#ef5350', borderDownColor: '#ef5350', borderUpColor: 'var(--accent-color)', wickDownColor: '#ef5350', wickUpColor: 'var(--accent-color)' });
                     const formattedData = data.map(d => ({ time: new Date(d.Date).getTime() / 1000, open: d.Open, high: d.High, low: d.Low, close: d.Close }));
                     candleSeries.setData(formattedData);
                     chart.timeScale().fitContent();
-                    new ResizeObserver(entries => {
-                        if (entries.length === 0 || entries[0].target !== container) { return; }
-                        const { width, height } = entries[0].contentRect;
-                        chart.resize(width, height);
-                    }).observe(container);
+                    new ResizeObserver(e => { if(e.length > 0) chart.resize(e[0].contentRect.width, e[0].contentRect.height); }).observe(container);
+                } else if (appName === 'get_portfolio_state') {
+                    let html = `<h4>Portfolio Status</h4><table class="fa-table">`;
+                    html += `<tr><td>Cash</td><td>$${Number(data.cash).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>`;
+                    html += `<tr><td>Portfolio Value</td><td>$${Number(data.portfolio_value).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>`;
+                    html += `</table><h4>Positions</h4>`;
+                    if (Object.keys(data.positions).length > 0) {
+                        html += `<table class="fa-table"><tr><th>Ticker</th><th>Units</th><th>Entry Price</th></tr>`;
+                        for (const [ticker, details] of Object.entries(data.positions)) {
+                            html += `<tr><td>${ticker}</td><td>${details.units.toFixed(4)}</td><td>$${details.entry_price.toFixed(2)}</td></tr>`;
+                        }
+                        html += '</table>';
+                    } else {
+                        html += '<p>No open positions.</p>';
+                    }
+                    container.innerHTML = html;
                 }
             }
+
+            // --- Agent Control ---
+            document.getElementById('start-agent-btn').addEventListener('click', async () => {
+                agentStatus.textContent = "Agent Status: Starting...";
+                try {
+                    const response = await fetch('/api/v1/agent/start', { method: 'POST' });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail);
+                    agentStatus.textContent = "Agent Status: Active";
+                } catch (error) {
+                    agentStatus.textContent = `Agent Status: Error (${error.message})`;
+                }
+            });
+
+            document.getElementById('stop-agent-btn').addEventListener('click', async () => {
+                agentStatus.textContent = "Agent Status: Stopping...";
+                try {
+                    const response = await fetch('/api/v1/agent/stop', { method: 'POST' });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail);
+                    agentStatus.textContent = "Agent Status: Inactive";
+                } catch (error) {
+                    agentStatus.textContent = `Agent Status: Error (${error.message})`;
+                }
+            });
+
 
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && commandPaletteOverlay.style.display === 'flex') {

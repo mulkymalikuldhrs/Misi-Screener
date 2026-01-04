@@ -1,20 +1,34 @@
-from fastapi import FastAPI, HTTPException, Query, Body
+import threading
+from fastapi import FastAPI, HTTPException, Query, Body, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Any
+from typing import Any, Dict
 
 # Use absolute imports
 from data_sources.yfinance_connector import YFinanceConnector
 from data_sources.news_connector import NewsConnector
 from data_sources.alpha_vantage_connector import AlphaVantageConnector
 from agents.advanced_orchestrator import AIAgent
+from agents.signal_agent import SignalAgent
+from agents.portfolio_manager import PortfolioManager
+from agents.master_agent import HedgeFundMasterAgent
+from execution.paper_trading_broker import PaperTradingBroker
+
+# --- Global State for the Hedge Fund ---
+# NOTE: In a production system, this state would be managed in a more robust
+# way (e.g., a database, a dedicated state manager process). For this
+# self-contained example, a global dictionary is sufficient.
+HEDGE_FUND_STATE: Dict[str, Any] = {
+    "master_agent": None,
+    "portfolio_manager": None,
+}
 
 # --- FastAPI App Initialization ---
 app = FastAPI(
     title="MiSi Terminal API",
-    description="API for the MiSi AI Quant Terminal.",
-    version="2.0.0"
+    description="API for the MiSi AI Quant Terminal & Hedge Fund.",
+    version="3.0.0"
 )
 
 # --- Service Instantiation ---
@@ -33,6 +47,68 @@ APP_REGISTRY = {
 ai_agent = AIAgent(APP_REGISTRY)
 
 # --- API Endpoints ---
+
+# -- Hedge Fund Control Endpoints --
+
+@app.post("/api/v1/agent/start")
+async def start_agent():
+    """
+    Initializes and starts the HedgeFundMasterAgent in a background thread.
+    """
+    if HEDGE_FUND_STATE.get("master_agent") and HEDGE_FUND_STATE["master_agent"].is_running:
+        raise HTTPException(status_code=400, detail="Agent is already running.")
+
+    # Initialize all components for a trading session
+    portfolio_manager = PortfolioManager(initial_cash=100000.0)
+    broker = PaperTradingBroker(portfolio_manager=portfolio_manager, data_connector=yfinance_connector)
+    # For now, we hardcode the strategy. A future version could take this as a parameter.
+    strategy_filepath = "strategies/mean_reversion_rsi.yml"
+    signal_agent = SignalAgent(strategy_filepath=strategy_filepath, data_connector=yfinance_connector)
+
+    master_agent = HedgeFundMasterAgent(
+        signal_agent=signal_agent,
+        portfolio_manager=portfolio_manager,
+        broker=broker,
+        strategy=signal_agent.strategy # Pass the loaded strategy dict
+    )
+
+    HEDGE_FUND_STATE["portfolio_manager"] = portfolio_manager
+    HEDGE_FUND_STATE["master_agent"] = master_agent
+
+    # Run the agent's trading loop in a separate thread to not block the API
+    thread = threading.Thread(target=master_agent.start, args=(60,)) # Run loop every 60 seconds
+    thread.daemon = True # Allows the main app to exit even if threads are running
+    thread.start()
+
+    return {"status": "Hedge Fund Master Agent started successfully."}
+
+@app.post("/api/v1/agent/stop")
+async def stop_agent():
+    """
+    Stops the master agent's trading loop.
+    """
+    master_agent = HEDGE_FUND_STATE.get("master_agent")
+    if not master_agent or not master_agent.is_running:
+        raise HTTPException(status_code=400, detail="Agent is not currently running.")
+
+    master_agent.stop()
+    HEDGE_FUND_STATE["master_agent"] = None # Clear the agent state
+    return {"status": "Agent stopping. It will complete the current loop."}
+
+@app.get("/api/v1/portfolio/state")
+async def get_portfolio_state():
+    """
+    Retrieves the current state of the portfolio from the PortfolioManager.
+    """
+    portfolio_manager = HEDGE_FUND_STATE.get("portfolio_manager")
+    if not portfolio_manager:
+        return {"status": "Portfolio not initialized. Start the agent first."}
+
+    return portfolio_manager.get_state()
+
+
+# -- Terminal Application Endpoints --
+
 class AIQuery(BaseModel):
     query: str
 
