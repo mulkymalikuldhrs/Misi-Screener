@@ -15,96 +15,95 @@ from agents.portfolio_manager import PortfolioManager
 from agents.master_agent import HedgeFundMasterAgent
 from execution.paper_trading_broker import PaperTradingBroker
 
-# --- Global State for the Hedge Fund ---
-# NOTE: In a production system, this state would be managed in a more robust
-# way (e.g., a database, a dedicated state manager process). For this
-# self-contained example, a global dictionary is sufficient.
-HEDGE_FUND_STATE: Dict[str, Any] = {
-    "master_agent": None,
-    "portfolio_manager": None,
-}
+# Use absolute imports
+from data_sources.yfinance_connector import YFinanceConnector
+from data_sources.news_connector import NewsConnector
+from data_sources.alpha_vantage_connector import AlphaVantageConnector
+from agents.advanced_orchestrator import AIAgent
+from agents.hedge_fund import HedgeFund # Import the new encapsulating class
+
+# --- Singleton Hedge Fund Instance ---
+# This single instance will manage all state for the trading components.
+# This replaces the need for a global dictionary.
+hedge_fund = HedgeFund(initial_cash=100000.0)
 
 # --- FastAPI App Initialization ---
 app = FastAPI(
     title="MiSi Terminal API",
     description="API for the MiSi AI Quant Terminal & Hedge Fund.",
-    version="3.0.0"
+    version="4.0.0" # Version bump to reflect new architecture
 )
 
-# --- Service Instantiation ---
+# --- Service Instantiation for AI Query Agent ---
+# Note: These are separate from the HedgeFund's internal components.
 yfinance_connector = YFinanceConnector()
 news_connector = NewsConnector()
 alpha_vantage_connector = AlphaVantageConnector()
 
-# --- Application Registry ---
+# --- Application Registry for AI Query Agent ---
 APP_REGISTRY = {
     "get_historical_data": yfinance_connector.get_historical_data,
     "get_news_headlines": news_connector.get_headlines,
     "get_income_statement": alpha_vantage_connector.get_income_statement,
 }
-
-# Instantiate the main AI Agent with the app registry
 ai_agent = AIAgent(APP_REGISTRY)
 
 # --- API Endpoints ---
 
-# -- Hedge Fund Control Endpoints --
+# -- Hedge Fund Control Endpoints (Refactored) --
+
+class StartAgentRequest(BaseModel):
+    strategy_name: str
 
 @app.post("/api/v1/agent/start")
-async def start_agent():
+async def start_agent(request: StartAgentRequest):
     """
-    Initializes and starts the HedgeFundMasterAgent in a background thread.
+    Starts the autonomous trading agent with a specified strategy.
     """
-    if HEDGE_FUND_STATE.get("master_agent") and HEDGE_FUND_STATE["master_agent"].is_running:
-        raise HTTPException(status_code=400, detail="Agent is already running.")
-
-    # Initialize all components for a trading session
-    portfolio_manager = PortfolioManager(initial_cash=100000.0)
-    broker = PaperTradingBroker(portfolio_manager=portfolio_manager, data_connector=yfinance_connector)
-    # For now, we hardcode the strategy. A future version could take this as a parameter.
-    strategy_filepath = "strategies/mean_reversion_rsi.yml"
-    signal_agent = SignalAgent(strategy_filepath=strategy_filepath, data_connector=yfinance_connector)
-
-    master_agent = HedgeFundMasterAgent(
-        signal_agent=signal_agent,
-        portfolio_manager=portfolio_manager,
-        broker=broker,
-        strategy=signal_agent.strategy # Pass the loaded strategy dict
-    )
-
-    HEDGE_FUND_STATE["portfolio_manager"] = portfolio_manager
-    HEDGE_FUND_STATE["master_agent"] = master_agent
-
-    # Run the agent's trading loop in a separate thread to not block the API
-    thread = threading.Thread(target=master_agent.start, args=(60,)) # Run loop every 60 seconds
-    thread.daemon = True # Allows the main app to exit even if threads are running
-    thread.start()
-
-    return {"status": "Hedge Fund Master Agent started successfully."}
+    try:
+        hedge_fund.start_agent(strategy_name=request.strategy_name)
+        return {"status": f"Agent started with strategy '{request.strategy_name}'."}
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/v1/agent/stop")
 async def stop_agent():
     """
-    Stops the master agent's trading loop.
+    Stops the autonomous trading agent.
     """
-    master_agent = HEDGE_FUND_STATE.get("master_agent")
-    if not master_agent or not master_agent.is_running:
-        raise HTTPException(status_code=400, detail="Agent is not currently running.")
+    try:
+        hedge_fund.stop_agent()
+        return {"status": "Agent stopped successfully."}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-    master_agent.stop()
-    HEDGE_FUND_STATE["master_agent"] = None # Clear the agent state
-    return {"status": "Agent stopping. It will complete the current loop."}
+@app.get("/api/v1/agent/status")
+async def get_agent_status():
+    """
+    Gets the current status of the trading agent.
+    """
+    return hedge_fund.get_agent_status()
 
 @app.get("/api/v1/portfolio/state")
 async def get_portfolio_state():
     """
-    Retrieves the current state of the portfolio from the PortfolioManager.
+    Retrieves the current state of the portfolio.
     """
-    portfolio_manager = HEDGE_FUND_STATE.get("portfolio_manager")
-    if not portfolio_manager:
-        return {"status": "Portfolio not initialized. Start the agent first."}
+    return hedge_fund.get_portfolio_state()
 
-    return portfolio_manager.get_state()
+@app.get("/api/v1/portfolio/history")
+async def get_trade_history():
+    """
+    Retrieves the trade history.
+    """
+    return hedge_fund.get_trade_history()
+
+@app.get("/api/v1/strategies")
+async def list_strategies():
+    """
+    Lists all available trading strategies.
+    """
+    return {"strategies": hedge_fund.list_strategies()}
 
 
 # -- Terminal Application Endpoints --

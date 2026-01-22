@@ -6,7 +6,7 @@ class HedgeFundMasterAgent:
     The master agent that orchestrates the entire autonomous trading loop.
     """
 
-    def __init__(self, signal_agent: Any, portfolio_manager: Any, broker: Any, strategy: dict):
+    def __init__(self, signal_agent: Any, portfolio_manager: Any, broker: Any, risk_manager: Any, strategy: dict):
         """
         Initializes the master agent with all necessary components.
 
@@ -14,31 +14,15 @@ class HedgeFundMasterAgent:
             signal_agent (Any): Instance of SignalAgent.
             portfolio_manager (Any): Instance of PortfolioManager.
             broker (Any): Instance of PaperTradingBroker.
+            risk_manager (Any): Instance of RiskManager.
             strategy (dict): The loaded strategy definition dictionary.
         """
         self.signal_agent = signal_agent
         self.portfolio_manager = portfolio_manager
         self.broker = broker
+        self.risk_manager = risk_manager
         self.strategy = strategy
         self.is_running = False
-
-    def _get_current_price(self) -> float:
-        """Helper to get the current price for stop-loss calculation."""
-        # This is a slight duplication of broker logic, could be refactored.
-        ticker = self.strategy['asset_ticker']
-        data = self.signal_agent.data_connector.get_historical_data(ticker, period="5d")
-        if data.empty:
-            raise ValueError(f"MasterAgent: Could not get current price for {ticker}.")
-        return data['Close'].iloc[-1]
-
-    def _calculate_stop_loss(self, entry_price: float) -> float:
-        """Calculates stop loss based on the strategy's risk management rules."""
-        risk_params = self.strategy['risk_management']
-        if risk_params['stop_loss_method'] == 'fixed_percent':
-            return entry_price * (1 - (risk_params.get('stop_loss_percent', 2.0) / 100.0))
-        # Default to a simple fixed percentage if ATR logic is not implemented yet.
-        # TODO: Implement ATR-based stop loss calculation.
-        return entry_price * (1 - (2.0 / 100.0)) # Fallback to 2%
 
     def run_trading_loop(self):
         """
@@ -50,28 +34,36 @@ class HedgeFundMasterAgent:
 
         signal = self.signal_agent.generate_signal()
         ticker = self.strategy['asset_ticker']
+        risk_params = self.strategy['risk_management']
 
         if signal == "BUY" and self.portfolio_manager.can_open_position(signal, ticker):
             print(f"MasterAgent: BUY signal received for {ticker}.")
-
             try:
-                entry_price = self._get_current_price()
-                stop_loss_price = self._calculate_stop_loss(entry_price)
+                # Get the current price from the broker, which is the source of truth for execution.
+                entry_price = self.broker.get_current_price(ticker)
+
+                # Delegate stop-loss calculation to the RiskManager
+                stop_loss_price = self.risk_manager.calculate_stop_loss(
+                    strategy_params=risk_params,
+                    ticker=ticker,
+                    entry_price=entry_price
+                )
 
                 position_size_units = self.portfolio_manager.calculate_position_size(
-                    risk_per_trade_percent=self.strategy['risk_management']['risk_per_trade_percent'],
+                    risk_per_trade_percent=risk_params['risk_per_trade_percent'],
                     entry_price=entry_price,
                     stop_loss_price=stop_loss_price
                 )
 
                 if position_size_units > 0:
                     print(f"MasterAgent: Position size calculated: {position_size_units:.4f} units.")
-                    self.broker.execute_order(ticker, "BUY", position_size_units)
+                    # Pass stop_loss to the broker for future-proofing (e.g., for bracket orders)
+                    self.broker.execute_order(ticker, "BUY", position_size_units, stop_loss_price=stop_loss_price)
                 else:
                     print("MasterAgent: Position size is 0. No trade will be executed.")
 
             except ValueError as e:
-                print(e)
+                print(f"MasterAgent: Error during BUY signal processing: {e}")
 
         elif signal == "SELL":
             # For now, SELL signal is only used to close an existing long position.
