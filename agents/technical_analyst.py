@@ -1,86 +1,55 @@
-# agents/technical_analyst.py
-
+import pandas as pd
 from components import technical_indicators as ti
 
-class TechnicalAnalystAgent:
+class TechnicalAnalyst:
     """
-    Analyzes raw market data to identify technical patterns, trends,
-    and calculate a wide range of indicators. This agent acts as a coordinator,
-    using the 'toolbox' in the components directory to perform calculations.
+    A facade for the technical indicator calculation library.
+    This agent provides a clean, strategy-agnostic interface for other agents
+    to retrieve technical analysis data.
     """
-    def __init__(self):
-        """
-        Initializes the agent. In a real scenario, this could be configured
-        with specific parameters for the indicators.
-        """
-        self.default_periods = {
-            "atr": 14,
-            "rsi": 14,
-            "macd_fast": 12,
-            "macd_slow": 26,
-            "macd_signal": 9
-        }
 
-    def analyze(self, market_data):
+    def calculate_rsi(self, data: pd.DataFrame, period: int = 14) -> pd.Series:
         """
-        Takes in market data and produces a technical analysis report.
+        Calculates the Relative Strength Index (RSI).
 
         Args:
-            market_data: A pandas DataFrame with columns ['high', 'low', 'close'].
+            data (pd.DataFrame): DataFrame with a 'Close' column.
+            period (int): The lookback period for the RSI calculation.
 
         Returns:
-            A dictionary summarizing the technical outlook.
+            A pandas Series containing the RSI values.
         """
-        # --- 1. Calculate Indicators ---
-        atr = ti.calculate_atr(
-            high=market_data['high'],
-            low=market_data['low'],
-            close=market_data['close'],
-            period=self.default_periods["atr"]
+        return ti.calculate_rsi(close=data['Close'], period=period)
+
+    def calculate_atr(self, data: pd.DataFrame, period: int = 14) -> pd.Series:
+        """
+        Calculates the Average True Range (ATR).
+
+        Args:
+            data (pd.DataFrame): DataFrame with 'High', 'Low', 'Close' columns.
+            period (int): The lookback period for the ATR calculation.
+
+        Returns:
+            A pandas Series containing the ATR values.
+        """
+        return ti.calculate_atr(high=data['High'], low=data['Low'], close=data['Close'], period=period)
+
+    def calculate_macd(self, data: pd.DataFrame, fast_period: int = 12, slow_period: int = 26, signal_period: int = 9) -> pd.DataFrame:
+        """
+        Calculates the Moving Average Convergence Divergence (MACD).
+
+        Args:
+            data (pd.DataFrame): DataFrame with a 'Close' column.
+            fast_period (int): Fast EMA period.
+            slow_period (int): Slow EMA period.
+            signal_period (int): Signal line EMA period.
+
+        Returns:
+            A DataFrame with MACD line, signal line, and histogram.
+        """
+        return ti.calculate_macd(
+            close=data['Close'],
+            fast_period=fast_period,
+            slow_period=slow_period,
+            signal_period=signal_period
         )
-
-        rsi = ti.calculate_rsi(
-            close=market_data['close'],
-            period=self.default_periods["rsi"]
-        )
-
-        macd_df = ti.calculate_macd(
-            close=market_data['close'],
-            fast_period=self.default_periods["macd_fast"],
-            slow_period=self.default_periods["macd_slow"],
-            signal_period=self.default_periods["macd_signal"]
-        )
-
-        # --- 2. Interpret and Structure the Report (Simple Interpretation for now) ---
-        # The AI's "thinking" would happen here or in the TraderAgent.
-        # This is a simplified interpretation based on the latest values.
-        latest_rsi = rsi.iloc[-1]
-        latest_macd_hist = macd_df['histogram'].iloc[-1]
-
-        momentum_outlook = "Neutral"
-        if latest_rsi > 70 and latest_macd_hist > 0:
-            momentum_outlook = "Strong Bullish"
-        elif latest_rsi < 30 and latest_macd_hist < 0:
-            momentum_outlook = "Strong Bearish"
-        elif latest_rsi > 50 and latest_macd_hist > 0:
-            momentum_outlook = "Bullish"
-        elif latest_rsi < 50 and latest_macd_hist < 0:
-            momentum_outlook = "Bearish"
-
-        report = {
-            "volatility": {
-                "atr_14": atr.iloc[-1]
-            },
-            "momentum": {
-                "rsi_14": latest_rsi,
-                "macd_histogram": latest_macd_hist,
-                "summary": momentum_outlook
-            },
-            "trend": {
-                "macd_line": macd_df['macd_line'].iloc[-1],
-                "signal_line": macd_df['signal_line'].iloc[-1],
-                "summary": "Trending Up" if macd_df['macd_line'].iloc[-1] > macd_df['signal_line'].iloc[-1] else "Trending Down"
-            }
-        }
-
-        return report

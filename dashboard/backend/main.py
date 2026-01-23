@@ -12,7 +12,7 @@ from data_sources.alpha_vantage_connector import AlphaVantageConnector
 from agents.advanced_orchestrator import AIAgent
 from agents.signal_agent import SignalAgent
 from agents.portfolio_manager import PortfolioManager
-from agents.master_agent import HedgeFundMasterAgent
+from agents.hedge_fund_master_agent import HedgeFundMasterAgent
 from execution.paper_trading_broker import PaperTradingBroker
 
 # --- Global State for the Hedge Fund ---

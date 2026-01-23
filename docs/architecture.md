@@ -1,52 +1,85 @@
 # System Architecture
 
-The MiSi AI Hedge Fund platform is architected as a complete, end-to-end automated trading system. It is composed of several specialized, decoupled components that work in concert to find, execute, and manage trades.
+The MiSi Screener platform has been architected as a modular, agent-based system designed for extensibility and realism. It separates concerns into distinct, specialized agents that collaborate to form a cohesive, autonomous trading engine. This document outlines the core components and their interactions.
 
-```
-Misi-Screener/
-│
-├── strategies/           # Definitive YAML files for trading strategies
-├── agents/               # The "brains": core logic for signals, portfolio, and orchestration
-├── execution/            # Simulated broker for paper trading
-├── data_sources/         # Connectors for external data APIs
-├── dashboard/            # The interactive web terminal for control and monitoring
-├── tests/                # Unit and integration tests
-└── run_backtest.py       # The standalone backtesting engine
-```
+## Core Principles
 
-### Core Trading Loop Components
+-   **Strategy-Agnostic Design**: The core engine is not hardcoded to any single trading strategy. New strategies can be defined in YAML files without requiring any changes to the underlying Python code.
+-   **Delegation of Responsibility**: Each agent has a single, well-defined purpose (e.g., signal generation, risk management). This makes the system easier to maintain, test, and extend.
+-   **Realism-First**: The components used in the backtester are the *exact same* components used in the live trading loop, ensuring that backtest performance is a reliable indicator of potential live performance.
+-   **Asynchronous Operation**: The main trading loop runs in a non-blocking, asynchronous manner, allowing it to be managed by the web dashboard without halting the server.
 
-The autonomous trading functionality is driven by a set of cooperative agents:
+## Component Breakdown
 
-1.  **`SignalAgent` (`agents/signal_agent.py`)**
-    -   **Role**: Strategy interpretation and signal generation.
-    -   **Function**: Reads a strategy `.yml` file from the `strategies/` directory, calculates the necessary technical indicators (e.g., RSI) using real market data, and produces a discrete trading signal (`BUY`, `SELL`, or `HOLD`).
+The system is composed of several key agents and managers that work in concert.
 
-2.  **`PortfolioManager` (`agents/portfolio_manager.py`)**
-    -   **Role**: The central state and risk management brain.
-    -   **Function**: A stateful service that tracks the portfolio's cash balance, open positions, and trade history. Crucially, it is responsible for **position sizing**, ensuring that every trade adheres to the risk parameters defined in the strategy (e.g., risk 1% of the portfolio per trade).
+### 1. `HedgeFundMasterAgent`
 
-3.  **`PaperTradingBroker` (`execution/paper_trading_broker.py`)**
-    -   **Role**: Simulated trade execution.
-    -   **Function**: Acts as a virtual broker. It takes an approved and sized order from the `PortfolioManager` and "executes" it at a simulated market price. It is designed to be extensible for future additions like slippage and commission modeling.
+-   **File**: `agents/hedge_fund_master_agent.py`
+-   **Role**: The central orchestrator of the entire system. It does not contain any trading logic itself but is responsible for running the main trading loop and coordinating the actions of all other agents.
+-   **Key Interactions**:
+    -   Initializes and holds instances of all other agents.
+    -   On each loop iteration, it queries the `SignalAgent` for a trading signal.
+    -   If a "BUY" signal is received, it consults the `RiskManager` to determine the stop-loss and the `PortfolioManager` to calculate the position size.
+    -   It then instructs the `Broker` to execute the trade.
 
-4.  **`HedgeFundMasterAgent` (`agents/master_agent.py`)**
-    -   **Role**: The master orchestrator.
-    -   **Function**: Runs the main autonomous **trading loop**. In each iteration, it:
-        1.  Invokes the `SignalAgent` to get a new signal.
-        2.  If a signal is generated, it consults the `PortfolioManager` to check for viability and calculate the correct position size.
-        3.  If the trade is approved, it commands the `PaperTradingBroker` to execute the trade.
-        4.  This loop is run in a background thread, allowing the system to trade autonomously.
+### 2. `StrategyManager`
 
-### Control and Monitoring
+-   **File**: `agents/strategy_manager.py`
+-   **Role**: To load, parse, and provide access to strategy configurations from YAML files located in the `strategies/` directory.
+-   **Key Interactions**:
+    -   It is initialized with a specific strategy file path.
+    -   It provides the `HedgeFundMasterAgent` with easy access to strategy parameters, such as the asset ticker and risk management rules.
 
--   **`dashboard/`**: The web terminal serves as the command center.
-    -   The **FastAPI Backend** exposes endpoints (`/api/v1/agent/start`, `/api/v1/agent/stop`) that directly control the `HedgeFundMasterAgent`. It also provides an endpoint (`/api/v1/portfolio/state`) to query the `PortfolioManager` for real-time updates.
-    -   The **Frontend UI** provides buttons to start and stop the agent and a `/portfolio` command to visualize the current state of the hedge fund.
+### 3. `SignalAgent`
 
-### Strategy Validation
+-   **File**: `agents/signal_agent.py`
+-   **Role**: To generate a discrete trading signal (`BUY`, `SELL`, or `HOLD`) based on the current market data and the loaded strategy's parameters.
+-   **Key Interactions**:
+    -   It receives the strategy configuration from the `StrategyManager`.
+    -   It uses the `TechnicalAnalyst` to calculate the required technical indicators.
+    -   It then applies the strategy's logic (e.g., RSI thresholds) to the indicator data to produce a final signal.
 
--   **`run_backtest.py`**: The "No Gimmick" Backtesting Engine.
-    -   This is a standalone command-line script that provides a robust way to validate strategies before deployment.
-    -   It uses the **exact same `SignalAgent`, `PortfolioManager`, and a slightly modified `BacktestingBroker`** to run a strategy over a historical dataset.
-    -   By iterating through historical price data tick-by-tick and running the full agent logic at each step, it provides a realistic simulation of how a strategy would have performed, free of lookahead bias.
+### 4. `TechnicalAnalyst`
+
+-   **File**: `agents/technical_analyst.py`
+-   **Role**: A facade for the technical indicator calculation library. It provides a clean, unified interface for other agents to access technical analysis.
+-   **Key Interactions**:
+    -   It uses the pure functions in `components/technical_indicators.py` to perform all calculations.
+    -   It provides methods like `calculate_rsi` and `calculate_atr` that return raw data series for other agents to interpret.
+
+### 5. `RiskManager`
+
+-   **File**: `agents/risk_manager.py`
+-   **Role**: To centralize all risk management logic. Its primary responsibility is to calculate stop-loss levels based on the strategy's rules.
+-   **Key Interactions**:
+    -   It is called by the `HedgeFundMasterAgent` *before* a trade is placed.
+    -   It can calculate stop-losses using various methods, such as fixed-percentage or volatility-based (ATR).
+
+### 6. `PortfolioManager`
+
+-   **File**: `agents/portfolio_manager.py`
+-   **Role**: To manage the state of the trading portfolio. It tracks cash, open positions, and trade history, and provides real-time valuation.
+-   **Key Interactions**:
+    -   It is used by the `HedgeFundMasterAgent` to calculate the appropriate position size for a new trade.
+    -   It is updated by the `Broker` after every trade execution.
+    -   It provides real-time P&L and portfolio value calculations by fetching live market data through its data connector.
+
+### 7. `PaperTradingBroker` (Execution)
+
+-   **File**: `execution/broker.py`
+-   **Role**: To simulate the execution of trades. It mimics a real brokerage by handling order execution and notifying the `PortfolioManager` of trade fills.
+
+## Data and Control Flow (Single Loop Iteration)
+
+1.  The `HedgeFundMasterAgent`'s scheduled loop begins.
+2.  `MasterAgent` -> `SignalAgent`: "Generate a signal."
+3.  `SignalAgent` -> `DataConnector`: "Get me the latest market data for [ticker]."
+4.  `SignalAgent` -> `TechnicalAnalyst`: "Calculate the RSI for this data."
+5.  `SignalAgent` returns "BUY" to the `MasterAgent`.
+6.  `MasterAgent` -> `PortfolioManager`: "Can we open a new position?"
+7.  `MasterAgent` -> `RiskManager`: "Calculate the stop-loss for a trade on [ticker] at [entry_price]."
+8.  `MasterAgent` -> `PortfolioManager`: "Calculate the position size based on this stop-loss."
+9.  `MasterAgent` -> `Broker`: "Execute a BUY order for [X] units of [ticker]."
+10. `Broker` executes the trade and calls -> `PortfolioManager`: "Record this trade."
+11. The loop concludes and waits for the next scheduled iteration.
