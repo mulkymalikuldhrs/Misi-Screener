@@ -14,22 +14,22 @@ from agents.portfolio_manager import PortfolioManager
 # --- Fixtures ---
 
 @pytest.fixture
-def mock_strategy_file(tmp_path):
-    """Creates a temporary YAML strategy file for testing."""
-    strategy_content = """
-    strategy_name: "TestRSI"
-    asset_ticker: "TEST-ASSET"
-    timeframe: "1h"
-    parameters:
-      rsi_period: 14
-      oversold_threshold: 30
-      overbought_threshold: 70
-    risk_management:
-      risk_per_trade_percent: 1.0
-    """
-    p = tmp_path / "strategy.yml"
-    p.write_text(strategy_content)
-    return str(p)
+def mock_strategy():
+    """Provides a mock strategy dictionary."""
+    return {
+        "strategy_name": "TestRSI",
+        "asset_ticker": "TEST-ASSET",
+        "timeframe": "1h",
+        "parameters": {
+            "indicator": "rsi",
+            "rsi_period": 14,
+            "oversold_threshold": 30,
+            "overbought_threshold": 70
+        },
+        "risk_management": {
+            "risk_per_trade_percent": 1.0
+        }
+    }
 
 @pytest.fixture
 def mock_data_connector():
@@ -64,25 +64,42 @@ def mock_data_connector():
     return connector
 
 
+from agents.technical_analyst import TechnicalAnalyst
+
+
 # --- Test Cases ---
 
-def test_signal_agent_buy_signal(mock_strategy_file, mock_data_connector):
+def test_signal_agent_buy_signal(mock_strategy, mock_data_connector):
     """Test if the SignalAgent correctly generates a BUY signal."""
     mock_data_connector.current_data = mock_data_connector.mock_data["oversold"]
-    agent = SignalAgent(mock_strategy_file, mock_data_connector)
+    analyst = TechnicalAnalyst()
+    agent = SignalAgent(
+        strategy=mock_strategy,
+        data_connector=mock_data_connector,
+        technical_analyst=analyst
+    )
     signal = agent.generate_signal()
     assert signal == "BUY"
 
-def test_signal_agent_sell_signal(mock_strategy_file, mock_data_connector):
+def test_signal_agent_sell_signal(mock_strategy, mock_data_connector):
     """Test if the SignalAgent correctly generates a SELL signal."""
     mock_data_connector.current_data = mock_data_connector.mock_data["overbought"]
-    agent = SignalAgent(mock_strategy_file, mock_data_connector)
+    analyst = TechnicalAnalyst()
+    agent = SignalAgent(
+        strategy=mock_strategy,
+        data_connector=mock_data_connector,
+        technical_analyst=analyst
+    )
     signal = agent.generate_signal()
     assert signal == "SELL"
 
-def test_portfolio_manager_position_sizing():
-    """Test the position sizing calculation."""
-    pm = PortfolioManager(initial_cash=100000)
+def test_portfolio_manager_position_sizing(mock_data_connector):
+    """Test the position sizing calculation with real-time valuation."""
+    # Mock the connector to provide a stable price for valuation
+    mock_data_connector.get_historical_data.return_value = pd.DataFrame({'Close': [100.0]})
+
+    pm = PortfolioManager(initial_cash=100000, data_connector=mock_data_connector)
+    pm.update_market_valuations() # Initial valuation
 
     # Risk 1% of 100k portfolio = $1000 risk
     # Risk per unit = 100 - 98 = $2
@@ -94,11 +111,13 @@ def test_portfolio_manager_position_sizing():
     )
     assert position_size == 500.0
 
-def test_portfolio_manager_trade_recording():
-    """Test that recording a trade correctly updates cash and positions."""
-    pm = PortfolioManager(initial_cash=100000)
+def test_portfolio_manager_trade_recording_and_valuation(mock_data_connector):
+    """Test that recording a trade correctly updates state and that valuation works."""
+    pm = PortfolioManager(initial_cash=100000, data_connector=mock_data_connector)
 
-    # Buy 10 units of TEST at $100
+    # --- Buy 10 units of TEST at $100 ---
+    # Mock the price feed for the trade
+    mock_data_connector.get_historical_data.return_value = pd.DataFrame({'Close': [100.0]})
     pm.record_trade(ticker="TEST", side="BUY", units=10, price=100, reason="ENTRY")
 
     state = pm.get_state()

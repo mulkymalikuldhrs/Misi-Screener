@@ -31,29 +31,43 @@ class PaperTradingBroker:
         # Return the last known closing price
         return data['Close'].iloc[-1]
 
-    def execute_order(self, ticker: str, side: str, units: float, reason: str = "ENTRY"):
+    def execute_order(self, ticker: str, side: str, units: float, reason: str = "ENTRY", slippage_percent: float = 0.05, commission_fee: float = 1.00):
         """
-        Simulates the execution of a market order.
-
-        In this simple version, we assume the order is filled instantly at the
-        current market price without slippage or commission.
+        Simulates the execution of a market order with slippage and commission.
 
         Args:
             ticker (str): The asset to trade.
             side (str): 'BUY' or 'SELL'.
             units (float): The number of units to trade.
-            reason (str): The reason for the trade (e.g., 'ENTRY', 'TAKE_PROFIT').
+            reason (str): The reason for the trade.
+            slippage_percent (float): The simulated price slippage in percent.
+            commission_fee (float): The flat commission fee in dollars.
         """
         if units <= 0:
             print("PaperTradingBroker: Order for 0 units. No action taken.")
             return
 
         try:
-            execution_price = self._get_current_price(ticker)
+            base_price = self._get_current_price(ticker)
 
-            # TODO: Add logic for slippage and commission for more realism.
+            # --- Simulate Slippage ---
+            if side == 'BUY':
+                # Price is slightly higher for a buy
+                execution_price = base_price * (1 + (slippage_percent / 100.0))
+            else: # SELL
+                # Price is slightly lower for a sell
+                execution_price = base_price * (1 - (slippage_percent / 100.0))
 
-            print(f"PaperTradingBroker: Executing {side} order for {units:.4f} {ticker} at simulated price ${execution_price:.2f}.")
+            print(f"PaperTradingBroker: Base price for {ticker} is ${base_price:.2f}. After slippage, execution price is ${execution_price:.2f}.")
+
+            # --- Simulate Commission ---
+            # For simplicity, we'll deduct commission from the portfolio manager's cash
+            # after the trade is recorded. A more complex simulation might adjust the
+            # total cost of the trade itself.
+            self.portfolio_manager.cash -= commission_fee
+            print(f"PaperTradingBroker: Charged a ${commission_fee:.2f} commission.")
+
+            print(f"PaperTradingBroker: Executing {side} order for {units:.4f} {ticker} at final price ${execution_price:.2f}.")
 
             # Record the executed trade with the portfolio manager
             self.portfolio_manager.record_trade(

@@ -1,106 +1,124 @@
+import asyncio
 import time
-from typing import Any
+from typing import Any, Dict
+
+# Import all the new specialized agents
+from .strategy_manager import StrategyManager
+from .signal_agent import SignalAgent
+from .portfolio_manager import PortfolioManager
+from .risk_manager import RiskManager
 
 class HedgeFundMasterAgent:
     """
-    The master agent that orchestrates the entire autonomous trading loop.
+    The master agent orchestrator, re-architected to be a pure, non-blocking
+    coordinator that delegates tasks to specialized agents.
     """
 
-    def __init__(self, signal_agent: Any, portfolio_manager: Any, broker: Any, strategy: dict):
+    def __init__(self,
+                 strategy_manager: StrategyManager,
+                 signal_agent: SignalAgent,
+                 portfolio_manager: PortfolioManager,
+                 risk_manager: RiskManager,
+                 broker: Any,
+                 data_connector: Any):
         """
         Initializes the master agent with all necessary components.
-
-        Args:
-            signal_agent (Any): Instance of SignalAgent.
-            portfolio_manager (Any): Instance of PortfolioManager.
-            broker (Any): Instance of PaperTradingBroker.
-            strategy (dict): The loaded strategy definition dictionary.
         """
+        self.strategy_manager = strategy_manager
         self.signal_agent = signal_agent
         self.portfolio_manager = portfolio_manager
+        self.risk_manager = risk_manager
         self.broker = broker
-        self.strategy = strategy
-        self.is_running = False
+        self.data_connector = data_connector # Used for fetching latest price data
 
-    def _get_current_price(self) -> float:
-        """Helper to get the current price for stop-loss calculation."""
-        # This is a slight duplication of broker logic, could be refactored.
-        ticker = self.strategy['asset_ticker']
-        data = self.signal_agent.data_connector.get_historical_data(ticker, period="5d")
-        if data.empty:
-            raise ValueError(f"MasterAgent: Could not get current price for {ticker}.")
-        return data['Close'].iloc[-1]
+        self.strategy: Dict[str, Any] = self.strategy_manager.get_strategy()
+        self._is_running = False
+        self._task = None
 
-    def _calculate_stop_loss(self, entry_price: float) -> float:
-        """Calculates stop loss based on the strategy's risk management rules."""
-        risk_params = self.strategy['risk_management']
-        if risk_params['stop_loss_method'] == 'fixed_percent':
-            return entry_price * (1 - (risk_params.get('stop_loss_percent', 2.0) / 100.0))
-        # Default to a simple fixed percentage if ATR logic is not implemented yet.
-        # TODO: Implement ATR-based stop loss calculation.
-        return entry_price * (1 - (2.0 / 100.0)) # Fallback to 2%
+    async def _run_trading_loop(self, interval_seconds: int):
+        """The core asynchronous trading loop."""
+        print(f"HedgeFundMasterAgent started. Loop will run every {interval_seconds} seconds.")
+        while self._is_running:
+            start_time = time.time()
+            print("\n" + "="*50)
+            print(f"MasterAgent: Running trading loop iteration at {time.ctime()}")
 
-    def run_trading_loop(self):
-        """
-        Executes a single iteration of the trading loop.
-        This function will be called repeatedly by a scheduler.
-        """
-        print("\n" + "="*50)
-        print(f"MasterAgent: Running trading loop iteration at {time.ctime()}")
+            # 1. Generate Signal
+            signal = self.signal_agent.generate_signal()
+            ticker = self.strategy['asset_ticker']
 
-        signal = self.signal_agent.generate_signal()
-        ticker = self.strategy['asset_ticker']
+            # 2. Act on Signal
+            if signal == "BUY" and self.portfolio_manager.can_open_position(signal, ticker):
+                print(f"MasterAgent: BUY signal received for {ticker}.")
+                await self._handle_buy_signal(ticker)
+            elif signal == "SELL":
+                await self._handle_sell_signal(ticker)
+            else: # HOLD
+                print(f"MasterAgent: HOLD signal received for {ticker}. No action taken.")
 
-        if signal == "BUY" and self.portfolio_manager.can_open_position(signal, ticker):
-            print(f"MasterAgent: BUY signal received for {ticker}.")
+            # 3. Update Portfolio Valuation
+            # This is crucial for accurate, real-time risk management
+            self.portfolio_manager.update_market_valuations()
+            print(f"MasterAgent: Portfolio value is now ${self.portfolio_manager.get_state()['portfolio_value']:.2f}")
 
-            try:
-                entry_price = self._get_current_price()
-                stop_loss_price = self._calculate_stop_loss(entry_price)
 
-                position_size_units = self.portfolio_manager.calculate_position_size(
-                    risk_per_trade_percent=self.strategy['risk_management']['risk_per_trade_percent'],
-                    entry_price=entry_price,
-                    stop_loss_price=stop_loss_price
-                )
+            print("="*50 + "\n")
 
-                if position_size_units > 0:
-                    print(f"MasterAgent: Position size calculated: {position_size_units:.4f} units.")
-                    self.broker.execute_order(ticker, "BUY", position_size_units)
-                else:
-                    print("MasterAgent: Position size is 0. No trade will be executed.")
+            # Wait for the next interval
+            elapsed_time = time.time() - start_time
+            await asyncio.sleep(max(0, interval_seconds - elapsed_time))
 
-            except ValueError as e:
-                print(e)
+    async def _handle_buy_signal(self, ticker: str):
+        """Handles the logic for executing a BUY order."""
+        try:
+            # Fetch fresh data for risk calculations
+            data = self.data_connector.get_historical_data(ticker, period="3mo")
+            if data.empty:
+                raise ValueError("Could not get data for risk calculation.")
 
-        elif signal == "SELL":
-            # For now, SELL signal is only used to close an existing long position.
-            if ticker in self.portfolio_manager.positions:
-                print(f"MasterAgent: SELL signal received for {ticker}. Closing position.")
-                units_to_sell = self.portfolio_manager.positions[ticker]['units']
-                self.broker.execute_order(ticker, "SELL", units_to_sell, reason="SIGNAL_EXIT")
+            entry_price = data['Close'].iloc[-1]
+
+            # Delegate risk calculations to the RiskManager
+            stop_loss_price = self.risk_manager.calculate_stop_loss(self.strategy, data, entry_price)
+
+            # Delegate position sizing to the PortfolioManager, which now has real-time valuation
+            self.portfolio_manager.update_market_valuations() # Ensure valuation is fresh
+            position_size_units = self.portfolio_manager.calculate_position_size(
+                risk_per_trade_percent=self.strategy['risk_management']['risk_per_trade_percent'],
+                entry_price=entry_price,
+                stop_loss_price=stop_loss_price
+            )
+
+            if position_size_units > 0:
+                print(f"MasterAgent: Position size calculated: {position_size_units:.4f} units.")
+                self.broker.execute_order(ticker, "BUY", position_size_units, reason="ENTRY")
             else:
-                print("MasterAgent: SELL signal received, but no open position to close.")
+                print("MasterAgent: Position size is 0 or less. No trade will be executed.")
 
-        else: # HOLD
-            print(f"MasterAgent: HOLD signal received for {ticker}. No action taken.")
+        except ValueError as e:
+            print(f"MasterAgent Error on BUY: {e}")
 
-        print("="*50 + "\n")
+    async def _handle_sell_signal(self, ticker: str):
+        """Handles the logic for closing a position based on a SELL signal."""
+        if ticker in self.portfolio_manager.positions:
+            print(f"MasterAgent: SELL signal received for {ticker}. Closing position.")
+            units_to_sell = self.portfolio_manager.positions[ticker]['units']
+            self.broker.execute_order(ticker, "SELL", units_to_sell, reason="SIGNAL_EXIT")
+        else:
+            print("MasterAgent: SELL signal received, but no open position to close.")
 
     def start(self, interval_seconds: int = 60):
-        """
-        Starts the autonomous trading loop.
-
-        Args:
-            interval_seconds (int): The time to wait between each trading loop iteration.
-        """
-        self.is_running = True
-        print(f"HedgeFundMasterAgent started. Loop will run every {interval_seconds} seconds.")
-        while self.is_running:
-            self.run_trading_loop()
-            time.sleep(interval_seconds)
+        """Starts the autonomous trading loop in the background."""
+        if not self._is_running:
+            self._is_running = True
+            self._task = asyncio.create_task(self._run_trading_loop(interval_seconds))
+            print("HedgeFundMasterAgent task created.")
 
     def stop(self):
-        """Stops the trading loop."""
-        print("HedgeFundMasterAgent stopping...")
-        self.is_running = False
+        """Stops the trading loop gracefully."""
+        if self._is_running and self._task:
+            print("HedgeFundMasterAgent stopping...")
+            self._is_running = False
+            self._task.cancel()
+            self._task = None
+            print("HedgeFundMasterAgent stopped.")

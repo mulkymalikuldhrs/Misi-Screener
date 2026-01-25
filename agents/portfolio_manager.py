@@ -3,27 +3,62 @@ from typing import Dict, Any, List
 class PortfolioManager:
     """
     Manages the state of the trading portfolio, including cash, positions,
-    and risk calculations.
+    and risk calculations. Now includes real-time valuation.
     """
 
-    def __init__(self, initial_cash: float = 100000.0):
+    def __init__(self, initial_cash: float = 100000.0, data_connector: Any = None):
         """
         Initializes the portfolio.
 
         Args:
             initial_cash (float): The starting cash balance.
+            data_connector (Any): A data connector to fetch live market prices.
         """
         self.initial_cash = initial_cash
         self.cash = initial_cash
-        self.positions: Dict[str, Dict[str, Any]] = {} # Ticker -> { 'units': float, 'entry_price': float }
+        self.positions: Dict[str, Dict[str, Any]] = {} # Ticker -> { 'units': float, 'entry_price': float, 'market_value': float, 'unrealized_pnl': float }
         self.trade_history: List[Dict[str, Any]] = []
+        self.data_connector = data_connector
+
+    def update_market_valuations(self):
+        """
+        Updates the market value and unrealized P&L for all open positions.
+        This is a critical function that must be called before any risk calculation.
+        """
+        if not self.data_connector:
+            # In a backtest or without a connector, we cannot value the portfolio in real-time.
+            # We revert to the simple, less accurate valuation method.
+            print("PortfolioManager Warning: No data connector provided. Unrealized P&L will be 0.")
+            return
+
+        for ticker, details in self.positions.items():
+            try:
+                # Fetch the latest price for the asset
+                data = self.data_connector.get_historical_data(ticker, period="1d", interval="1m")
+                if data.empty:
+                    print(f"Could not fetch price for {ticker}. Using entry price for valuation.")
+                    current_price = details['entry_price']
+                else:
+                    current_price = data['Close'].iloc[-1]
+
+                market_value = details['units'] * current_price
+                unrealized_pnl = market_value - (details['units'] * details['entry_price'])
+
+                self.positions[ticker]['market_value'] = market_value
+                self.positions[ticker]['unrealized_pnl'] = unrealized_pnl
+
+            except Exception as e:
+                print(f"Error updating valuation for {ticker}: {e}")
+                self.positions[ticker]['market_value'] = details['units'] * details['entry_price']
+                self.positions[ticker]['unrealized_pnl'] = 0.0
 
     def get_state(self) -> Dict[str, Any]:
         """
-        Returns a snapshot of the current portfolio state.
-
-        TODO: Add unrealized P&L calculation based on current market prices.
+        Returns a snapshot of the current portfolio state, including real-time valuations.
         """
+        # Ensure valuations are fresh before returning state
+        self.update_market_valuations()
+
         return {
             "cash": self.cash,
             "positions": self.positions,
@@ -34,14 +69,13 @@ class PortfolioManager:
     def _calculate_total_value(self) -> float:
         """
         Calculates the total market value of the portfolio (cash + positions).
-
-        NOTE: This is a simplified version. A real implementation would need
-        to fetch the current market price for each position to get its real-time value.
-        For now, we'll value positions at their entry price.
+        This now uses the real-time market value of positions.
         """
+        # It's crucial that update_market_valuations() is called before this.
         position_value = 0.0
         for ticker, details in self.positions.items():
-            position_value += details['units'] * details['entry_price']
+            # If market_value hasn't been calculated yet, fall back to entry price
+            position_value += details.get('market_value', details['units'] * details['entry_price'])
         return self.cash + position_value
 
     def can_open_position(self, signal: str, ticker: str) -> bool:
