@@ -1,22 +1,27 @@
 from typing import Dict, Any
+import random
 
 class PaperTradingBroker:
     """
-    A simulated broker for paper trading. It simulates order execution.
+    A simulated broker for paper trading. It simulates order execution with realistic frictions.
     """
 
-    def __init__(self, portfolio_manager: Any, data_connector: Any):
+    def __init__(self, portfolio_manager: Any, data_connector: Any, slippage_percent: float = 0.01, commission_fee: float = 0.50):
         """
-        Initializes the broker.
+        Initializes the broker with configurable trading frictions.
 
         Args:
             portfolio_manager (Any): An instance of PortfolioManager to record trades.
             data_connector (Any): An instance of a data connector to get current prices.
+            slippage_percent (float): The max percentage of slippage to apply.
+            commission_fee (float): A fixed commission fee per trade.
         """
         self.portfolio_manager = portfolio_manager
         self.data_connector = data_connector
+        self.slippage_percent = slippage_percent
+        self.commission_fee = commission_fee
 
-    def _get_current_price(self, ticker: str) -> float:
+    def get_current_price(self, ticker: str) -> float:
         """
         Fetches the most recent closing price for an asset.
 
@@ -49,11 +54,17 @@ class PaperTradingBroker:
             return
 
         try:
-            execution_price = self._get_current_price(ticker)
+            base_price = self.get_current_price(ticker)
 
-            # TODO: Add logic for slippage and commission for more realism.
+            # Simulate slippage
+            slippage = random.uniform(-self.slippage_percent, self.slippage_percent) / 100.0
+            execution_price = base_price * (1 + slippage)
 
-            print(f"PaperTradingBroker: Executing {side} order for {units:.4f} {ticker} at simulated price ${execution_price:.2f}.")
+            # Deduct commission from portfolio
+            self.portfolio_manager.cash -= self.commission_fee
+
+            print(f"PaperTradingBroker: Executing {side} order for {units:.4f} {ticker} at simulated price ${execution_price:.2f} (includes slippage).")
+            print(f"PaperTradingBroker: Commission of ${self.commission_fee:.2f} applied.")
 
             # Record the executed trade with the portfolio manager
             self.portfolio_manager.record_trade(

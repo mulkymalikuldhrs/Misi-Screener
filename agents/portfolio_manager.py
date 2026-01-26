@@ -3,24 +3,26 @@ from typing import Dict, Any, List
 class PortfolioManager:
     """
     Manages the state of the trading portfolio, including cash, positions,
-    and risk calculations.
+    and risk calculations. Capable of real-time valuation.
     """
 
-    def __init__(self, initial_cash: float = 100000.0):
+    def __init__(self, initial_cash: float = 100000.0, data_connector: Any = None):
         """
         Initializes the portfolio.
 
         Args:
             initial_cash (float): The starting cash balance.
+            data_connector (Any): A data connector to fetch live market prices for valuation.
         """
         self.initial_cash = initial_cash
         self.cash = initial_cash
+        self.data_connector = data_connector
         self.positions: Dict[str, Dict[str, Any]] = {} # Ticker -> { 'units': float, 'entry_price': float }
         self.trade_history: List[Dict[str, Any]] = []
 
     def get_state(self) -> Dict[str, Any]:
         """
-        Returns a snapshot of the current portfolio state.
+        Returns a snapshot of the current portfolio state, including real-time valuation.
 
         TODO: Add unrealized P&L calculation based on current market prices.
         """
@@ -33,16 +35,29 @@ class PortfolioManager:
 
     def _calculate_total_value(self) -> float:
         """
-        Calculates the total market value of the portfolio (cash + positions).
-
-        NOTE: This is a simplified version. A real implementation would need
-        to fetch the current market price for each position to get its real-time value.
-        For now, we'll value positions at their entry price.
+        Calculates the total market value of the portfolio (cash + positions' real-time value).
         """
         position_value = 0.0
         for ticker, details in self.positions.items():
-            position_value += details['units'] * details['entry_price']
+            current_price = self._get_current_price(ticker)
+            position_value += details['units'] * current_price
         return self.cash + position_value
+
+    def _get_current_price(self, ticker: str) -> float:
+        """
+        Fetches the current market price for a ticker using the data connector.
+        Returns the entry price as a fallback if the live price is unavailable.
+        """
+        if self.data_connector:
+            try:
+                data = self.data_connector.get_historical_data(ticker, period="5d")
+                if not data.empty:
+                    return data['Close'].iloc[-1]
+            except Exception as e:
+                print(f"PortfolioManager: Could not fetch live price for {ticker}: {e}. Using entry price.")
+
+        # Fallback to the recorded entry price
+        return self.positions[ticker]['entry_price']
 
     def can_open_position(self, signal: str, ticker: str) -> bool:
         """

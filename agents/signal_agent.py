@@ -1,10 +1,12 @@
 import yaml
 import pandas as pd
 from typing import Dict, Any, Optional
+from agents.technical_analyst import TechnicalAnalyst
 
 class SignalAgent:
     """
     Generates trading signals based on a defined strategy YAML file.
+    It is strategy-agnostic and relies on the TechnicalAnalyst for all indicator calculations.
     """
 
     def __init__(self, strategy_filepath: str, data_connector: Any):
@@ -17,6 +19,7 @@ class SignalAgent:
         """
         self.strategy = self._load_strategy(strategy_filepath)
         self.data_connector = data_connector
+        self.technical_analyst = TechnicalAnalyst()
 
     def _load_strategy(self, filepath: str) -> Dict[str, Any]:
         """Loads and parses the strategy YAML file."""
@@ -27,16 +30,6 @@ class SignalAgent:
             print(f"Error loading strategy file {filepath}: {e}")
             raise
 
-    def _calculate_rsi(self, data: pd.DataFrame, period: int) -> pd.Series:
-        """Calculates the Relative Strength Index (RSI)."""
-        delta = data['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-
-        rs = gain / loss
-        rsi = 100 - (100 / (1 + rs))
-        return rsi
-
     def generate_signal(self) -> Optional[str]:
         """
         Generates a trading signal (BUY, SELL, HOLD) based on the strategy logic.
@@ -45,11 +38,7 @@ class SignalAgent:
             A string representing the signal, or None if data is insufficient.
         """
         ticker = self.strategy['asset_ticker']
-        timeframe = self.strategy['timeframe']
-
-        # Fetch the required historical data
-        # We fetch more data than the RSI period to ensure the calculation is stable
-        fetch_period = "3mo" # A reasonable lookback for hourly data
+        fetch_period = "3mo"
         data = self.data_connector.get_historical_data(ticker, period=fetch_period)
 
         if data.empty:
@@ -58,18 +47,17 @@ class SignalAgent:
 
         # --- Strategy Logic ---
         params = self.strategy['parameters']
-        data['rsi'] = self._calculate_rsi(data, params['rsi_period'])
+        # Delegate RSI calculation to the TechnicalAnalyst
+        data['rsi'] = self.technical_analyst.calculate_rsi(data, period=params['rsi_period'])
 
-        # Get the most recent RSI value
         latest_rsi = data['rsi'].iloc[-1]
 
-        if latest_rsi is None or pd.isna(latest_rsi):
+        if pd.isna(latest_rsi):
             print("SignalAgent: Not enough data to compute a signal.")
             return None
 
         print(f"SignalAgent: Latest RSI for {ticker} is {latest_rsi:.2f}")
 
-        # Generate signal based on thresholds
         if latest_rsi < params['oversold_threshold']:
             return "BUY"
         elif latest_rsi > params['overbought_threshold']:
