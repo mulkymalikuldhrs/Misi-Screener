@@ -1,61 +1,58 @@
-from typing import Dict, Any
+import random
+from typing import Any
 
 class PaperTradingBroker:
     """
-    A simulated broker for paper trading. It simulates order execution.
+    A simulated broker for paper trading. It simulates order execution with
+    realistic frictions like slippage and commission.
     """
 
-    def __init__(self, portfolio_manager: Any, data_connector: Any):
+    def __init__(self, portfolio_manager: Any, data_connector: Any, slippage_percent: float = 0.01, commission_fee: float = 0.50):
         """
         Initializes the broker.
 
         Args:
-            portfolio_manager (Any): An instance of PortfolioManager to record trades.
-            data_connector (Any): An instance of a data connector to get current prices.
+            portfolio_manager (Any): Instance of PortfolioManager to record trades.
+            data_connector (Any): Instance of a data connector to get current prices.
+            slippage_percent (float): Max slippage as a percentage (e.g., 0.01 for 0.01%).
+            commission_fee (float): A flat commission fee per trade (e.g., $0.50).
         """
         self.portfolio_manager = portfolio_manager
         self.data_connector = data_connector
+        self.slippage_percent = slippage_percent
+        self.commission_fee = commission_fee
 
     def _get_current_price(self, ticker: str) -> float:
-        """
-        Fetches the most recent closing price for an asset.
-
-        NOTE: This is a simplification. A real-time system would use a streaming
-        websocket API. For this simulation, we'll use the last available daily close.
-        """
-        # Fetch just the last few days to get the most recent price
+        """Fetches the most recent closing price for an asset."""
         data = self.data_connector.get_historical_data(ticker, period="5d")
         if data.empty:
-            raise ValueError(f"PaperTradingBroker: Could not get current price for {ticker}.")
-
-        # Return the last known closing price
+            raise ValueError(f"Broker: Could not get current price for {ticker}.")
         return data['Close'].iloc[-1]
 
     def execute_order(self, ticker: str, side: str, units: float, reason: str = "ENTRY"):
         """
-        Simulates the execution of a market order.
-
-        In this simple version, we assume the order is filled instantly at the
-        current market price without slippage or commission.
-
-        Args:
-            ticker (str): The asset to trade.
-            side (str): 'BUY' or 'SELL'.
-            units (float): The number of units to trade.
-            reason (str): The reason for the trade (e.g., 'ENTRY', 'TAKE_PROFIT').
+        Simulates the execution of a market order with slippage and commission.
         """
         if units <= 0:
-            print("PaperTradingBroker: Order for 0 units. No action taken.")
+            print("Broker: Order for 0 units. No action.")
             return
 
         try:
-            execution_price = self._get_current_price(ticker)
+            base_price = self._get_current_price(ticker)
 
-            # TODO: Add logic for slippage and commission for more realism.
+            # --- Simulate Slippage ---
+            slippage = base_price * (self.slippage_percent / 100.0) * (random.random() - 0.5) * 2
+            execution_price = base_price + slippage if side == "BUY" else base_price - slippage
 
-            print(f"PaperTradingBroker: Executing {side} order for {units:.4f} {ticker} at simulated price ${execution_price:.2f}.")
+            # --- Apply Commission ---
+            # For simplicity, commission is deducted from cash in PortfolioManager after the trade
+            # Here we just log it for transparency
 
-            # Record the executed trade with the portfolio manager
+            print(f"Broker: Executing {side} for {units:.4f} {ticker} at ~${base_price:.2f}")
+            print(f"  -> Slippage adjusted price: ${execution_price:.2f}")
+            print(f"  -> Commission: ${self.commission_fee:.2f}")
+
+            # Record the trade with the portfolio manager
             self.portfolio_manager.record_trade(
                 ticker=ticker,
                 side=side,
@@ -63,8 +60,10 @@ class PaperTradingBroker:
                 price=execution_price,
                 reason=reason
             )
+            # Deduct commission from cash
+            self.portfolio_manager.cash -= self.commission_fee
 
         except ValueError as e:
             print(e)
         except Exception as e:
-            print(f"PaperTradingBroker: An unexpected error occurred during order execution: {e}")
+            print(f"Broker: Unexpected error during order execution: {e}")

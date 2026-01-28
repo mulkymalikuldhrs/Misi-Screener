@@ -1,168 +1,147 @@
-import threading
-from fastapi import FastAPI, HTTPException, Query, Body, BackgroundTasks
+import asyncio
+import os
+from fastapi import FastAPI, HTTPException, Query, Body
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Any, Dict
+from typing import Any, Dict, List
+import yaml
 
-# Use absolute imports
+# Use absolute imports from the project root
 from data_sources.yfinance_connector import YFinanceConnector
 from data_sources.news_connector import NewsConnector
 from data_sources.alpha_vantage_connector import AlphaVantageConnector
 from agents.advanced_orchestrator import AIAgent
 from agents.signal_agent import SignalAgent
 from agents.portfolio_manager import PortfolioManager
+from agents.risk_manager import RiskManager
+from agents.technical_analyst import TechnicalAnalyst
 from agents.master_agent import HedgeFundMasterAgent
 from execution.paper_trading_broker import PaperTradingBroker
 
-# --- Global State for the Hedge Fund ---
-# NOTE: In a production system, this state would be managed in a more robust
-# way (e.g., a database, a dedicated state manager process). For this
-# self-contained example, a global dictionary is sufficient.
-HEDGE_FUND_STATE: Dict[str, Any] = {
-    "master_agent": None,
-    "portfolio_manager": None,
-}
+# --- Singleton State Manager ---
+class HedgeFundStateManager:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(HedgeFundStateManager, cls).__new__(cls)
+            cls._instance.master_agent = None
+            cls._instance.portfolio_manager = None
+            cls._instance.agent_task = None
+        return cls._instance
+
+    def is_agent_running(self):
+        return bool(self.master_agent and self.master_agent.is_running)
+
+state_manager = HedgeFundStateManager()
 
 # --- FastAPI App Initialization ---
 app = FastAPI(
     title="MiSi Terminal API",
     description="API for the MiSi AI Quant Terminal & Hedge Fund.",
-    version="3.0.0"
+    version="4.0.0"
 )
 
 # --- Service Instantiation ---
 yfinance_connector = YFinanceConnector()
 news_connector = NewsConnector()
 alpha_vantage_connector = AlphaVantageConnector()
+technical_analyst = TechnicalAnalyst()
 
-# --- Application Registry ---
-APP_REGISTRY = {
-    "get_historical_data": yfinance_connector.get_historical_data,
-    "get_news_headlines": news_connector.get_headlines,
-    "get_income_statement": alpha_vantage_connector.get_income_statement,
-}
-
-# Instantiate the main AI Agent with the app registry
-ai_agent = AIAgent(APP_REGISTRY)
+# --- API Models ---
+class StartAgentRequest(BaseModel):
+    strategy_filename: str
 
 # --- API Endpoints ---
 
-# -- Hedge Fund Control Endpoints --
-
 @app.post("/api/v1/agent/start")
-async def start_agent():
+async def start_agent(request: StartAgentRequest):
     """
-    Initializes and starts the HedgeFundMasterAgent in a background thread.
+    Initializes and starts the HedgeFundMasterAgent in a background asyncio task.
+    The agent is now strategy-dynamic, loading based on the provided filename.
     """
-    if HEDGE_FUND_STATE.get("master_agent") and HEDGE_FUND_STATE["master_agent"].is_running:
+    if state_manager.is_agent_running():
         raise HTTPException(status_code=400, detail="Agent is already running.")
 
+    strategy_filepath = f"strategies/{request.strategy_filename}"
+    if not os.path.exists(strategy_filepath):
+        raise HTTPException(status_code=404, detail=f"Strategy file '{request.strategy_filename}' not found.")
+
     # Initialize all components for a trading session
-    portfolio_manager = PortfolioManager(initial_cash=100000.0)
+    portfolio_manager = PortfolioManager(initial_cash=100000.0, data_connector=yfinance_connector)
     broker = PaperTradingBroker(portfolio_manager=portfolio_manager, data_connector=yfinance_connector)
-    # For now, we hardcode the strategy. A future version could take this as a parameter.
-    strategy_filepath = "strategies/mean_reversion_rsi.yml"
     signal_agent = SignalAgent(strategy_filepath=strategy_filepath, data_connector=yfinance_connector)
+    risk_manager = RiskManager(technical_analyst=technical_analyst, data_connector=yfinance_connector)
 
     master_agent = HedgeFundMasterAgent(
         signal_agent=signal_agent,
         portfolio_manager=portfolio_manager,
+        risk_manager=risk_manager,
         broker=broker,
-        strategy=signal_agent.strategy # Pass the loaded strategy dict
+        strategy=signal_agent.strategy
     )
 
-    HEDGE_FUND_STATE["portfolio_manager"] = portfolio_manager
-    HEDGE_FUND_STATE["master_agent"] = master_agent
+    state_manager.portfolio_manager = portfolio_manager
+    state_manager.master_agent = master_agent
 
-    # Run the agent's trading loop in a separate thread to not block the API
-    thread = threading.Thread(target=master_agent.start, args=(60,)) # Run loop every 60 seconds
-    thread.daemon = True # Allows the main app to exit even if threads are running
-    thread.start()
+    # Run the agent's trading loop in a background asyncio task
+    loop = asyncio.get_event_loop()
+    state_manager.agent_task = loop.create_task(master_agent.start(interval_seconds=60))
 
-    return {"status": "Hedge Fund Master Agent started successfully."}
+    return {"status": "Hedge Fund Master Agent started successfully.", "strategy": signal_agent.strategy['strategy_name']}
 
 @app.post("/api/v1/agent/stop")
 async def stop_agent():
     """
-    Stops the master agent's trading loop.
+    Stops the master agent's trading loop gracefully.
     """
-    master_agent = HEDGE_FUND_STATE.get("master_agent")
-    if not master_agent or not master_agent.is_running:
+    if not state_manager.is_agent_running():
         raise HTTPException(status_code=400, detail="Agent is not currently running.")
 
-    master_agent.stop()
-    HEDGE_FUND_STATE["master_agent"] = None # Clear the agent state
-    return {"status": "Agent stopping. It will complete the current loop."}
+    state_manager.master_agent.stop()
+    if state_manager.agent_task:
+        state_manager.agent_task.cancel()
+        state_manager.agent_task = None
+    state_manager.master_agent = None
+
+    return {"status": "Agent stopping. It will complete the current loop if active."}
+
+@app.get("/api/v1/agent/status")
+async def get_agent_status():
+    """
+    Returns the current running status of the master agent.
+    """
+    return {"is_running": state_manager.is_agent_running()}
 
 @app.get("/api/v1/portfolio/state")
 async def get_portfolio_state():
     """
     Retrieves the current state of the portfolio from the PortfolioManager.
     """
-    portfolio_manager = HEDGE_FUND_STATE.get("portfolio_manager")
-    if not portfolio_manager:
+    if not state_manager.portfolio_manager:
         return {"status": "Portfolio not initialized. Start the agent first."}
+    return state_manager.portfolio_manager.get_state()
 
-    return portfolio_manager.get_state()
-
-
-# -- Terminal Application Endpoints --
-
-class AIQuery(BaseModel):
-    query: str
-
-@app.post("/api/v1/ai-query")
-async def handle_ai_query(request: AIQuery = Body(...)):
+@app.get("/api/v1/strategies")
+async def list_strategies() -> List[Dict[str, Any]]:
     """
-    Handles a natural language query using the advanced AI Agent.
-    The agent parses the query, orchestrates calls, and returns a composite result.
+    Scans the /strategies directory and returns a list of available strategies.
     """
-    try:
-        # Delegate the entire query handling process to the AI agent
-        response = await ai_agent.handle_query(request.query)
-        # We need to manually process DataFrame outputs for JSON serialization
-        for result in response.get('results', []):
-            if hasattr(result.get('data'), 'reset_index'): # Check if it's a DataFrame
-                 result['data'] = result['data'].reset_index().to_dict(orient='records')
-        return response
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred in the AI agent: {str(e)}")
-
-
-@app.get("/api/v1/invoke/{app_name}")
-async def invoke_app(app_name: str, ticker: str = Query(None), q: str = Query(None)) -> Any:
-    """
-    Primary endpoint to invoke a data or analysis application directly.
-    """
-    if app_name not in APP_REGISTRY:
-        raise HTTPException(status_code=404, detail=f"Application '{app_name}' not found.")
-
-    app_function = APP_REGISTRY[app_name]
-
-    try:
-        if app_name in ["get_historical_data", "get_income_statement"]:
-            if not ticker:
-                raise HTTPException(status_code=400, detail=f"The 'ticker' parameter is required for the '{app_name}' app.")
-            data = app_function(ticker=ticker)
-            if app_name == "get_historical_data":
-                return data.reset_index().to_dict(orient='records')
-            return data
-
-        elif app_name == "get_news_headlines":
-            query = q or ticker
-            if not query:
-                raise HTTPException(status_code=400, detail="A 'q' or 'ticker' parameter is required for the 'get_news_headlines' app.")
-            return app_function(query=query)
-
-        else:
-            return app_function()
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred in '{app_name}': {str(e)}")
-
+    strategies = []
+    for filename in os.listdir("strategies"):
+        if filename.endswith(".yml"):
+            try:
+                with open(f"strategies/{filename}", 'r') as f:
+                    strategy_data = yaml.safe_load(f)
+                    strategies.append({
+                        "filename": filename,
+                        "strategy_name": strategy_data.get("strategy_name", "N/A"),
+                        "description": strategy_data.get("strategy_description", "No description.")
+                    })
+            except Exception as e:
+                print(f"Could not load strategy {filename}: {e}")
+    return strategies
 
 # --- Static File Serving ---
 app.mount("/static", StaticFiles(directory="dashboard/frontend"), name="static")
