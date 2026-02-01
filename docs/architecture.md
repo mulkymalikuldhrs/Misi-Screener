@@ -1,52 +1,34 @@
-# System Architecture
+# MiSi AI Hedge Fund - Architecture
 
-The MiSi AI Hedge Fund platform is architected as a complete, end-to-end automated trading system. It is composed of several specialized, decoupled components that work in concert to find, execute, and manage trades.
+The MiSi AI Hedge Fund is an autonomous trading platform designed for real-time market analysis and automated trade execution. The system follows a decoupled, agent-based architecture where specialized agents handle specific parts of the trading lifecycle.
 
-```
-Misi-Screener/
-│
-├── strategies/           # Definitive YAML files for trading strategies
-├── agents/               # The "brains": core logic for signals, portfolio, and orchestration
-├── execution/            # Simulated broker for paper trading
-├── data_sources/         # Connectors for external data APIs
-├── dashboard/            # The interactive web terminal for control and monitoring
-├── tests/                # Unit and integration tests
-└── run_backtest.py       # The standalone backtesting engine
-```
+## Core Components
 
-### Core Trading Loop Components
+### 1. HedgeFundMasterAgent (`agents/hedge_fund_master_agent.py`)
+The orchestrator of the system. It runs an asynchronous trading loop, coordinating signals from the `SignalAgent`, risk assessment from the `RiskManager`, and execution through the `Broker`.
 
-The autonomous trading functionality is driven by a set of cooperative agents:
+### 2. StrategyManager (`agents/strategy_manager.py`)
+Responsible for loading and parsing trading strategies defined in YAML files. It provides a standardized interface for other agents to access strategy parameters and risk rules.
 
-1.  **`SignalAgent` (`agents/signal_agent.py`)**
-    -   **Role**: Strategy interpretation and signal generation.
-    -   **Function**: Reads a strategy `.yml` file from the `strategies/` directory, calculates the necessary technical indicators (e.g., RSI) using real market data, and produces a discrete trading signal (`BUY`, `SELL`, or `HOLD`).
+### 3. SignalAgent (`agents/signal_agent.py`)
+Generates trading signals (BUY, SELL, HOLD) based on the current strategy. It uses the `TechnicalAnalystAgent` to calculate indicators and the `DataConnector` to fetch historical data.
 
-2.  **`PortfolioManager` (`agents/portfolio_manager.py`)**
-    -   **Role**: The central state and risk management brain.
-    -   **Function**: A stateful service that tracks the portfolio's cash balance, open positions, and trade history. Crucially, it is responsible for **position sizing**, ensuring that every trade adheres to the risk parameters defined in the strategy (e.g., risk 1% of the portfolio per trade).
+### 4. TechnicalAnalystAgent (`agents/technical_analyst.py`)
+A specialized agent for technical analysis. It encapsulates the logic for calculating indicators like RSI, MACD, and ATR, providing a clean API for other agents.
 
-3.  **`PaperTradingBroker` (`execution/paper_trading_broker.py`)**
-    -   **Role**: Simulated trade execution.
-    -   **Function**: Acts as a virtual broker. It takes an approved and sized order from the `PortfolioManager` and "executes" it at a simulated market price. It is designed to be extensible for future additions like slippage and commission modeling.
+### 5. PortfolioManager (`agents/portfolio_manager.py`)
+Manages the global state of the fund, including cash balances, open positions, and trade history. It performs real-time portfolio valuation and calculates position sizes based on risk parameters.
 
-4.  **`HedgeFundMasterAgent` (`agents/master_agent.py`)**
-    -   **Role**: The master orchestrator.
-    -   **Function**: Runs the main autonomous **trading loop**. In each iteration, it:
-        1.  Invokes the `SignalAgent` to get a new signal.
-        2.  If a signal is generated, it consults the `PortfolioManager` to check for viability and calculate the correct position size.
-        3.  If the trade is approved, it commands the `PaperTradingBroker` to execute the trade.
-        4.  This loop is run in a background thread, allowing the system to trade autonomously.
+### 6. RiskManager (`agents/risk_manager.py`)
+Centralizes all risk-related calculations. Its primary role is to determine appropriate stop-loss levels (e.g., ATR-based) and ensure that every trade adheres to the fund's risk management policy.
 
-### Control and Monitoring
+### 7. PaperTradingBroker (`execution/paper_trading_broker.py`)
+Simulates a real-world broker. It executes trades with realistic frictions, including slippage and commission fees, and updates the `PortfolioManager`.
 
--   **`dashboard/`**: The web terminal serves as the command center.
-    -   The **FastAPI Backend** exposes endpoints (`/api/v1/agent/start`, `/api/v1/agent/stop`) that directly control the `HedgeFundMasterAgent`. It also provides an endpoint (`/api/v1/portfolio/state`) to query the `PortfolioManager` for real-time updates.
-    -   The **Frontend UI** provides buttons to start and stop the agent and a `/portfolio` command to visualize the current state of the hedge fund.
+## Data Layer
+The system uses specialized connectors (`data_sources/`) to fetch data from external APIs like Yahoo Finance, Alpha Vantage, and NewsAPI.
 
-### Strategy Validation
-
--   **`run_backtest.py`**: The "No Gimmick" Backtesting Engine.
-    -   This is a standalone command-line script that provides a robust way to validate strategies before deployment.
-    -   It uses the **exact same `SignalAgent`, `PortfolioManager`, and a slightly modified `BacktestingBroker`** to run a strategy over a historical dataset.
-    -   By iterating through historical price data tick-by-tick and running the full agent logic at each step, it provides a realistic simulation of how a strategy would have performed, free of lookahead bias.
+## Dashboard & API
+The system features a Bloomberg-grade operational terminal.
+- **Backend**: A FastAPI application (`dashboard/backend/main.py`) that orchestrates the agents and provides REST endpoints for control and monitoring.
+- **Frontend**: An interactive web interface (`dashboard/frontend/index.html`) for real-time visualization and manual command override.
