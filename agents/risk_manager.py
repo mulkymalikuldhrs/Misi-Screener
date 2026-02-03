@@ -1,33 +1,72 @@
-class RiskManagerAgent:
-    """
-    Evaluates trade proposals and monitors the overall portfolio to ensure
-    adherence to risk management rules. Has final veto power over any trade.
-    """
-    def __init__(self, portfolio_state, risk_rules):
-        self.portfolio_state = portfolio_state
-        self.risk_rules = risk_rules # e.g., max_drawdown, max_exposure_per_asset
+from typing import Dict, Any
+from utils.logger import logger
 
-    def evaluate_trade(self, trade_proposal):
+class RiskManager:
+    """
+    Handles all risk management calculations, including stop-loss placement
+    and trade evaluation. This class centralizes risk logic, ensuring
+    consistent application of risk rules across the system.
+    """
+
+    def __init__(self, data_connector: Any, technical_analyst: Any):
         """
-        Takes a trade proposal and decides whether to approve or veto it.
+        Initializes the RiskManager.
 
         Args:
-            trade_proposal: A dictionary containing the details of the proposed trade
-                           (asset, entry, stop_loss, position_size).
+            data_connector (Any): An instance of a data connector to fetch market data.
+            technical_analyst (Any): An instance of the TechnicalAnalyst for indicator calculations.
+        """
+        self.data_connector = data_connector
+        self.technical_analyst = technical_analyst
+
+    def calculate_stop_loss(self, ticker: str, entry_price: float, risk_params: Dict[str, Any]) -> float:
+        """
+        Calculates the stop-loss price based on the specified method in the strategy.
+
+        Args:
+            ticker (str): The asset ticker.
+            entry_price (float): The entry price of the trade.
+            risk_params (Dict[str, Any]): The risk management rules from the strategy.
 
         Returns:
-            A boolean (True for approve, False for veto) and a reason.
+            The calculated stop-loss price.
         """
-        # 1. Check if the proposed trade violates any hard limits (e.g., max size)
-        # 2. Simulate the impact of the trade on the portfolio's overall risk
-        # 3. Check against portfolio-level rules (e.g., max drawdown)
+        method = risk_params.get('stop_loss_method', 'fixed_percent')
 
-        is_approved = True
-        reason = "Trade is within all risk parameters."
+        if method == 'atr':
+            return self._calculate_atr_stop_loss(ticker, entry_price, risk_params)
+        elif method == 'fixed_percent':
+            return self._calculate_fixed_percent_stop_loss(entry_price, risk_params)
+        else:
+            logger.warning(f"Unknown stop-loss method '{method}'. Defaulting to fixed percent.")
+            return self._calculate_fixed_percent_stop_loss(entry_price, risk_params)
 
-        # Example rule:
-        if trade_proposal['risk_per_trade'] > self.risk_rules['max_risk_per_trade']:
-            is_approved = False
-            reason = "Trade risk exceeds the maximum allowed risk per trade."
+    def _calculate_fixed_percent_stop_loss(self, entry_price: float, risk_params: Dict[str, Any]) -> float:
+        """Calculates a stop-loss based on a fixed percentage."""
+        percent = risk_params.get('stop_loss_percent', 2.0)
+        return entry_price * (1 - (percent / 100.0))
 
-        return is_approved, reason
+    def _calculate_atr_stop_loss(self, ticker: str, entry_price: float, risk_params: Dict[str, Any]) -> float:
+        """
+        Calculates a stop-loss based on the Average True Range (ATR), a measure of volatility.
+        """
+        atr_multiplier = risk_params.get('atr_multiplier', 2.0)
+        atr_period = risk_params.get('atr_period', 14)
+
+        # Fetch historical data to calculate ATR
+        data = self.data_connector.get_historical_data(ticker, period="3mo")
+        if data.empty:
+            logger.warning(f"Could not fetch data for {ticker}. Using fixed percent stop-loss.")
+            return self._calculate_fixed_percent_stop_loss(entry_price, risk_params)
+
+        # Use the technical analyst to calculate ATR
+        atr_series = self.technical_analyst.calculate_atr(
+            high=data['High'],
+            low=data['Low'],
+            close=data['Close'],
+            period=atr_period
+        )
+        latest_atr = atr_series.iloc[-1]
+
+        stop_loss_price = entry_price - (latest_atr * atr_multiplier)
+        return stop_loss_price

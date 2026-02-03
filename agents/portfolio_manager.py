@@ -1,125 +1,196 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
+from agents.models import init_db, PortfolioState, Position as PositionModel, Trade as TradeModel, db
+from utils.logger import logger
 
 class PortfolioManager:
     """
     Manages the state of the trading portfolio, including cash, positions,
-    and risk calculations.
+    and real-time valuation. Uses Peewee for persistent storage.
     """
 
-    def __init__(self, initial_cash: float = 100000.0):
+    def __init__(self, data_connector: Any, initial_cash: float = 100000.0):
         """
         Initializes the portfolio.
 
         Args:
+            data_connector (Any): An instance of a data connector for fetching live prices.
             initial_cash (float): The starting cash balance.
         """
+        self.data_connector = data_connector
         self.initial_cash = initial_cash
-        self.cash = initial_cash
-        self.positions: Dict[str, Dict[str, Any]] = {} # Ticker -> { 'units': float, 'entry_price': float }
-        self.trade_history: List[Dict[str, Any]] = []
+
+        # Initialize database
+        init_db()
+        self._load_state_from_db()
+
+    def _load_state_from_db(self):
+        """Loads the portfolio state from the database or initializes it."""
+        # Load Cash
+        latest_state = PortfolioState.select().order_by(PortfolioState.timestamp.desc()).first()
+        if latest_state:
+            self.cash = latest_state.cash
+        else:
+            self.cash = self.initial_cash
+            PortfolioState.create(cash=self.cash, total_value=self.cash)
+
+        # Load Positions
+        self.positions = {}
+        for pos in PositionModel.select():
+            self.positions[pos.ticker] = {
+                'units': pos.units,
+                'entry_price': pos.entry_price
+            }
+
+        # Load Trade History (limit to last 100 for memory efficiency)
+        self.trade_history = []
+        trades = TradeModel.select().order_by(TradeModel.timestamp.desc()).limit(100)
+        for t in trades:
+            self.trade_history.append({
+                'ticker': t.ticker,
+                'side': t.side,
+                'units': t.units,
+                'price': t.price,
+                'reason': t.reason,
+                'timestamp': t.timestamp
+            })
+
+    def get_current_price(self, ticker: str) -> float:
+        """Fetches the most recent price for a given ticker."""
+        # Using a small period to get the latest available price
+        data = self.data_connector.get_historical_data(ticker, period="5d")
+        if data.empty:
+            raise ValueError(f"PortfolioManager: Could not get current price for {ticker}.")
+        return data['Close'].iloc[-1]
+
+    def get_unrealized_pnl(self) -> Tuple[float, float]:
+        """
+        Calculates the unrealized profit and loss for all open positions.
+
+        Returns:
+            A tuple containing (total_pnl_absolute, total_pnl_percentage).
+        """
+        total_pnl = 0.0
+        total_cost_basis = 0.0
+
+        for ticker, details in self.positions.items():
+            try:
+                current_price = self.get_current_price(ticker)
+                cost_basis = details['units'] * details['entry_price']
+                market_value = details['units'] * current_price
+                pnl = market_value - cost_basis
+                total_pnl += pnl
+                total_cost_basis += cost_basis
+            except Exception as e:
+                logger.warning(f"Could not value position for {ticker}: {e}")
+                # Fallback to cost basis (0 P&L)
+                total_cost_basis += details['units'] * details['entry_price']
+
+        pnl_percentage = (total_pnl / total_cost_basis) * 100 if total_cost_basis != 0 else 0.0
+        return total_pnl, pnl_percentage
 
     def get_state(self) -> Dict[str, Any]:
-        """
-        Returns a snapshot of the current portfolio state.
-
-        TODO: Add unrealized P&L calculation based on current market prices.
-        """
+        """Returns a snapshot of the current portfolio state with real-time valuation."""
+        unrealized_pnl, _ = self.get_unrealized_pnl()
         return {
             "cash": self.cash,
             "positions": self.positions,
             "portfolio_value": self._calculate_total_value(),
+            "unrealized_pnl": unrealized_pnl,
             "trade_count": len(self.trade_history)
         }
 
     def _calculate_total_value(self) -> float:
-        """
-        Calculates the total market value of the portfolio (cash + positions).
-
-        NOTE: This is a simplified version. A real implementation would need
-        to fetch the current market price for each position to get its real-time value.
-        For now, we'll value positions at their entry price.
-        """
+        """Calculates the total real-time market value of the portfolio."""
         position_value = 0.0
         for ticker, details in self.positions.items():
-            position_value += details['units'] * details['entry_price']
+            try:
+                current_price = self.get_current_price(ticker)
+                position_value += details['units'] * current_price
+            except Exception:
+                # Fallback to entry price if live price is not available
+                position_value += details['units'] * details['entry_price']
         return self.cash + position_value
 
     def can_open_position(self, signal: str, ticker: str) -> bool:
-        """
-        Checks if a new position can be opened based on the signal.
-        For this simple version, it just prevents holding the same asset long/short.
-        """
+        """Checks if a new position can be opened."""
         if signal == "BUY" and ticker in self.positions:
-            print("PortfolioManager: Already holding a position. Cannot open another.")
+            logger.info(f"Already holding a position in {ticker}. Skipping BUY.")
             return False
-        # Add logic for short selling if needed
         return True
 
     def calculate_position_size(self, risk_per_trade_percent: float, entry_price: float, stop_loss_price: float) -> float:
-        """
-        Calculates the number of units to buy for a new position.
-
-        Args:
-            risk_per_trade_percent (float): The percentage of total portfolio value to risk.
-            entry_price (float): The price at which the trade will be entered.
-            stop_loss_price (float): The price at which the trade will be exited for a loss.
-
-        Returns:
-            The number of units of the asset to purchase. Returns 0 if the trade is too risky.
-        """
+        """Calculates the number of units to buy for a new position."""
         total_value = self._calculate_total_value()
         risk_amount_per_trade = total_value * (risk_per_trade_percent / 100.0)
 
-        risk_per_unit = entry_price - stop_loss_price
+        risk_per_unit = abs(entry_price - stop_loss_price)
         if risk_per_unit <= 0:
             return 0.0
 
         position_size_units = risk_amount_per_trade / risk_per_unit
-
-        # Check if we have enough cash
         trade_cost = position_size_units * entry_price
+
         if trade_cost > self.cash:
-            print("PortfolioManager: Not enough cash to open the desired position size.")
-            # We could resize the position to fit cash, but for now we'll just block it.
-            return 0.0
+            logger.warning("Not enough cash to open the desired position size. Sizing down.")
+            position_size_units = self.cash / entry_price
 
         return position_size_units
 
     def record_trade(self, ticker: str, side: str, units: float, price: float, reason: str):
-        """
-        Updates the portfolio state after a trade is executed.
+        """Updates the portfolio state after a trade is executed and persists it."""
+        with db.atomic():
+            trade_data = {"ticker": ticker, "side": side, "units": units, "price": price, "reason": reason}
+            self.trade_history.insert(0, trade_data)
 
-        Args:
-            ticker (str): The asset ticker.
-            side (str): 'BUY' or 'SELL'.
-            units (float): The number of units traded.
-            price (float): The execution price.
-            reason (str): Reason for the trade (e.g., "ENTRY", "STOP_LOSS").
-        """
-        trade = {"ticker": ticker, "side": side, "units": units, "price": price, "reason": reason}
-        self.trade_history.append(trade)
+            # Save trade to DB
+            TradeModel.create(**trade_data)
 
-        if side == "BUY":
-            self.cash -= units * price
-            if ticker in self.positions:
-                # Averaging down (not a typical strategy, but handle it)
-                total_cost = (self.positions[ticker]['units'] * self.positions[ticker]['entry_price']) + (units * price)
-                total_units = self.positions[ticker]['units'] + units
-                self.positions[ticker]['entry_price'] = total_cost / total_units
-                self.positions[ticker]['units'] = total_units
-            else:
-                self.positions[ticker] = {'units': units, 'entry_price': price}
+            if side == "BUY":
+                self.cash -= units * price
+                if ticker in self.positions:
+                    total_cost = (self.positions[ticker]['units'] * self.positions[ticker]['entry_price']) + (units * price)
+                    total_units = self.positions[ticker]['units'] + units
+                    self.positions[ticker]['entry_price'] = total_cost / total_units
+                    self.positions[ticker]['units'] = total_units
 
-        elif side == "SELL":
-            if ticker not in self.positions or units > self.positions[ticker]['units']:
-                print(f"PortfolioManager Warning: Attempting to sell more {ticker} than held.")
-                return # Or raise an error
+                    # Update position in DB
+                    pos_db = PositionModel.get(PositionModel.ticker == ticker)
+                    pos_db.units = self.positions[ticker]['units']
+                    pos_db.entry_price = self.positions[ticker]['entry_price']
+                    pos_db.last_price = price
+                    pos_db.save()
+                else:
+                    self.positions[ticker] = {'units': units, 'entry_price': price}
+                    # Create position in DB
+                    PositionModel.create(
+                        ticker=ticker,
+                        units=units,
+                        entry_price=price,
+                        last_price=price
+                    )
 
-            self.cash += units * price
-            self.positions[ticker]['units'] -= units
+            elif side == "SELL":
+                if ticker not in self.positions:
+                    logger.warning(f"Attempting to sell {ticker} which is not held.")
+                    return
 
-            # If all units are sold, remove the position
-            if self.positions[ticker]['units'] < 1e-9: # Use a small epsilon for float comparison
-                del self.positions[ticker]
+                if units > self.positions[ticker]['units']:
+                    logger.warning(f"Sizing down SELL order for {ticker} to match held units.")
+                    units = self.positions[ticker]['units']
 
-        print(f"PortfolioManager: Recorded {side} of {units:.4f} {ticker} @ ${price:.2f}. New cash balance: ${self.cash:.2f}")
+                self.cash += units * price
+                self.positions[ticker]['units'] -= units
+
+                pos_db = PositionModel.get(PositionModel.ticker == ticker)
+                if self.positions[ticker]['units'] < 1e-9:
+                    del self.positions[ticker]
+                    pos_db.delete_instance()
+                else:
+                    pos_db.units = self.positions[ticker]['units']
+                    pos_db.last_price = price
+                    pos_db.save()
+
+            # Update PortfolioState in DB
+            PortfolioState.create(cash=self.cash, total_value=self._calculate_total_value())
+
+        logger.info(f"Recorded {side} of {units:.4f} {ticker} @ ${price:.2f}. New cash balance: ${self.cash:.2f}")

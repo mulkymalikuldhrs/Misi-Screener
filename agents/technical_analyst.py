@@ -1,59 +1,36 @@
 # agents/technical_analyst.py
 
+import pandas as pd
+from typing import Dict, Any
 from components import technical_indicators as ti
 
 class TechnicalAnalystAgent:
     """
-    Analyzes raw market data to identify technical patterns, trends,
-    and calculate a wide range of indicators. This agent acts as a coordinator,
-    using the 'toolbox' in the components directory to perform calculations.
+    Analyzes raw market data to identify technical patterns and calculate indicators.
     """
-    def __init__(self):
-        """
-        Initializes the agent. In a real scenario, this could be configured
-        with specific parameters for the indicators.
-        """
-        self.default_periods = {
-            "atr": 14,
-            "rsi": 14,
-            "macd_fast": 12,
-            "macd_slow": 26,
-            "macd_signal": 9
-        }
 
-    def analyze(self, market_data):
-        """
-        Takes in market data and produces a technical analysis report.
+    def calculate_atr(self, high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
+        """Calculates the Average True Range."""
+        return ti.calculate_atr(high, low, close, period)
 
+    def calculate_rsi(self, close: pd.Series, period: int = 14) -> pd.Series:
+        """Calculates the Relative Strength Index."""
+        return ti.calculate_rsi(close, period)
+
+    def calculate_macd(self, close: pd.Series, fast_period: int = 12, slow_period: int = 26, signal_period: int = 9) -> pd.DataFrame:
+        """Calculates the MACD indicator."""
+        return ti.calculate_macd(close, fast_period, slow_period, signal_period)
+
+    def analyze(self, market_data: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Produces a technical analysis report.
         Args:
-            market_data: A pandas DataFrame with columns ['high', 'low', 'close'].
-
-        Returns:
-            A dictionary summarizing the technical outlook.
+            market_data: DataFrame with ['High', 'Low', 'Close'] columns.
         """
-        # --- 1. Calculate Indicators ---
-        atr = ti.calculate_atr(
-            high=market_data['high'],
-            low=market_data['low'],
-            close=market_data['close'],
-            period=self.default_periods["atr"]
-        )
+        atr = self.calculate_atr(market_data['High'], market_data['Low'], market_data['Close'])
+        rsi = self.calculate_rsi(market_data['Close'])
+        macd_df = self.calculate_macd(market_data['Close'])
 
-        rsi = ti.calculate_rsi(
-            close=market_data['close'],
-            period=self.default_periods["rsi"]
-        )
-
-        macd_df = ti.calculate_macd(
-            close=market_data['close'],
-            fast_period=self.default_periods["macd_fast"],
-            slow_period=self.default_periods["macd_slow"],
-            signal_period=self.default_periods["macd_signal"]
-        )
-
-        # --- 2. Interpret and Structure the Report (Simple Interpretation for now) ---
-        # The AI's "thinking" would happen here or in the TraderAgent.
-        # This is a simplified interpretation based on the latest values.
         latest_rsi = rsi.iloc[-1]
         latest_macd_hist = macd_df['histogram'].iloc[-1]
 
@@ -62,25 +39,9 @@ class TechnicalAnalystAgent:
             momentum_outlook = "Strong Bullish"
         elif latest_rsi < 30 and latest_macd_hist < 0:
             momentum_outlook = "Strong Bearish"
-        elif latest_rsi > 50 and latest_macd_hist > 0:
-            momentum_outlook = "Bullish"
-        elif latest_rsi < 50 and latest_macd_hist < 0:
-            momentum_outlook = "Bearish"
 
-        report = {
-            "volatility": {
-                "atr_14": atr.iloc[-1]
-            },
-            "momentum": {
-                "rsi_14": latest_rsi,
-                "macd_histogram": latest_macd_hist,
-                "summary": momentum_outlook
-            },
-            "trend": {
-                "macd_line": macd_df['macd_line'].iloc[-1],
-                "signal_line": macd_df['signal_line'].iloc[-1],
-                "summary": "Trending Up" if macd_df['macd_line'].iloc[-1] > macd_df['signal_line'].iloc[-1] else "Trending Down"
-            }
+        return {
+            "volatility": {"atr_14": atr.iloc[-1]},
+            "momentum": {"rsi_14": latest_rsi, "summary": momentum_outlook},
+            "trend": {"summary": "Trending Up" if latest_macd_hist > 0 else "Trending Down"}
         }
-
-        return report
