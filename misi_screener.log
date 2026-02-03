@@ -1,5 +1,0 @@
-2026-02-03 00:20:48,587 - misi_screener - INFO - Latest RSI for TEST-ASSET is 0.00
-2026-02-03 00:20:48,597 - misi_screener - INFO - Latest RSI for TEST-ASSET is 100.00
-2026-02-03 00:20:48,629 - misi_screener - INFO - Recorded BUY of 10.0000 TEST @ $100.00. New cash balance: $99000.00
-2026-02-03 00:20:48,633 - misi_screener - INFO - Recorded SELL of 5.0000 TEST @ $110.00. New cash balance: $99550.00
-2026-02-03 00:20:48,637 - misi_screener - INFO - Recorded SELL of 5.0000 TEST @ $115.00. New cash balance: $100125.00

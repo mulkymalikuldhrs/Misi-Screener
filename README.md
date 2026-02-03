@@ -66,9 +66,9 @@ docker-compose up -d
 
 ### 4. Running Locally
 
-1.  **Start the backend server:**
+1.  **Start the platform:**
     ```bash
-    python -m uvicorn dashboard.backend.main:app --host 0.0.0.0 --port 8000
+    python main.py
     ```
 
 2.  **Access the Terminal:**

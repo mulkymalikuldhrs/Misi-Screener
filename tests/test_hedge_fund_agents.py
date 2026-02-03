@@ -12,8 +12,18 @@ from agents.signal_agent import SignalAgent
 from agents.portfolio_manager import PortfolioManager
 from agents.technical_analyst import TechnicalAnalystAgent
 from agents.strategy_manager import StrategyManager
+from agents.models import db, PortfolioState, Position, Trade
 
 # --- Fixtures ---
+
+@pytest.fixture(autouse=True)
+def setup_test_db():
+    """Sets up an in-memory database for each test."""
+    db.init(':memory:')
+    db.connect(reuse_if_open=True)
+    db.create_tables([PortfolioState, Position, Trade])
+    yield
+    db.close()
 
 @pytest.fixture
 def mock_strategy_file(tmp_path):

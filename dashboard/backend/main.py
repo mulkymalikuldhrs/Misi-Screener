@@ -1,4 +1,5 @@
 import asyncio
+import os
 from fastapi import FastAPI, HTTPException, Query, Body, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -167,8 +168,15 @@ async def invoke_app(app_name: str, ticker: str = Query(None), q: str = Query(No
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- Static File Serving ---
-app.mount("/static", StaticFiles(directory="dashboard/frontend"), name="static")
+# Resolve paths relative to this file to be robust
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+INDEX_PATH = os.path.join(FRONTEND_DIR, "index.html")
+
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 @app.get("/", include_in_schema=False)
 async def read_index():
-    return FileResponse('dashboard/frontend/index.html')
+    if not os.path.exists(INDEX_PATH):
+        raise HTTPException(status_code=404, detail=f"Index file not found at {INDEX_PATH}")
+    return FileResponse(INDEX_PATH)
