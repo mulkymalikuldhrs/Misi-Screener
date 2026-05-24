@@ -33,3 +33,7 @@ This serves as a roadmap for future development and helps manage user and contri
 -   **Limitation**: While the architecture is designed to support them, there are currently no autonomous agents implemented. The system can only be used interactively through the terminal.
 -   **Impact**: The "dual-mode" vision is not yet realized. The system cannot perform background monitoring, send alerts, or execute strategies on its own.
 -   **Future Work**: Developing the first autonomous agents (e.g., `MarketScannerAgent`) is a key priority on the project roadmap.
+
+---
+> **Contact:** Mulky Malikul Dhaher — [mulkymalikuldhaher@email.com](mailto:mulkymalikuldhaher@email.com)
+> **Disclaimer:** This project is for Education Purpose only. Risiko apapun tidak kita tanggung. (We are not responsible for any risks or damages.)

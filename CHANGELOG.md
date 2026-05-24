@@ -30,3 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   **Old Dashboard UI**: The previous tab-based dashboard (`Chart`, `Risk Management`, etc.) has been completely removed in favor of the new terminal interface.
 -   **Old Monolithic API**: The `/api/v1/analysis` endpoint has been removed and replaced by the new modular API.
 -   **Old `core/` and `risk/` directories**: The previous logic for market structure and risk has been removed to make way for the new component-based architecture.
+
+---
+> **Contact:** Mulky Malikul Dhaher — [mulkymalikuldhaher@email.com](mailto:mulkymalikuldhaher@email.com)
+> **Disclaimer:** This project is for Education Purpose only. Risiko apapun tidak kita tanggung. (We are not responsible for any risks or damages.)

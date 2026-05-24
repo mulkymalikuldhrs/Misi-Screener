@@ -78,3 +78,7 @@ Before submitting a contribution, please ensure that all existing tests pass and
 -   Ensure that user-facing text (in the UI or in logs) is clear and informative.
 
 Thank you for helping to make MiSi Screener a world-class tool!
+
+---
+> **Contact:** Mulky Malikul Dhaher — [mulkymalikuldhaher@email.com](mailto:mulkymalikuldhaher@email.com)
+> **Disclaimer:** This project is for Education Purpose only. Risiko apapun tidak kita tanggung. (We are not responsible for any risks or damages.)

@@ -32,3 +32,7 @@ The system uses specialized connectors (`data_sources/`) to fetch data from exte
 The system features a Bloomberg-grade operational terminal.
 - **Backend**: A FastAPI application (`dashboard/backend/main.py`) that orchestrates the agents and provides REST endpoints for control and monitoring.
 - **Frontend**: An interactive web interface (`dashboard/frontend/index.html`) for real-time visualization and manual command override.
+
+---
+> **Contact:** Mulky Malikul Dhaher — [mulkymalikuldhaher@email.com](mailto:mulkymalikuldhaher@email.com)
+> **Disclaimer:** This project is for Education Purpose only. Risiko apapun tidak kita tanggung. (We are not responsible for any risks or damages.)
