@@ -1,68 +1,59 @@
-# Contributing to Misi Screener
+# Contributing to This Project
 
-Thank you for your interest in contributing to Misi Screener! We welcome contributions from developers, quantitative analysts, and AI researchers worldwide.
+First off, thanks for taking the time to contribute! 🎉
 
-## 🇬🇧 English
+The following is a set of guidelines for contributing to this project. These are mostly guidelines, not rules. Use your best judgment, and feel free to propose changes to this document in a pull request.
 
-### How to Contribute
+## How Can I Contribute?
 
-1. **Fork** the repository at [https://github.com/mulkymalikuldhrs/Misi-Screener/fork](https://github.com/mulkymalikuldhrs/Misi-Screener/fork)
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes with clear, descriptive messages
-4. **Push** to your fork (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request with a detailed description
+### Report Bugs
 
-### Development Setup
+- Use the GitHub Issues section to report bugs
+- Include as much detail as possible: OS, version, steps to reproduce
+- Use a clear and descriptive title
 
-```bash
-git clone https://github.com/mulkymalikuldhrs/Misi-Screener.git
-cd Misi-Screener
-pip install -r requirements.txt
-```
+### Suggest Enhancements
 
-### Contribution Areas
+- Open a GitHub Issue with the tag `enhancement`
+- Describe the enhancement in detail
+- Explain why this enhancement would be useful
 
-- 🧪 **Testing** — Unit tests, integration tests for agents and components
-- 📊 **Strategies** — New YAML strategy definitions and indicators
-- 🔌 **Data Sources** — New API connectors (Binance, OANDA, etc.)
-- 🎨 **Dashboard** — UI improvements and new visualization features
-- 📖 **Documentation** — Tutorials, API docs, and examples
-- 🌐 **Internationalization** — Translation support
+### Pull Requests
 
-### Code Style
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Commit your changes (`git commit -m 'Add amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
-- Follow PEP 8 for Python code
-- Add type hints to all function signatures
-- Include docstrings for all public methods
-- Write tests for new features
+## Development Process
 
-## 🇮🇩 Bahasa Indonesia
+1. **Clone** the repository
+2. Create a **branch** for your feature/fix
+3. **Test** your changes thoroughly
+4. **Document** any new features
+5. Submit a **Pull Request**
 
-### Cara Berkontribusi
+## Code Style
 
-1. **Fork** repositori ini
-2. **Buat** branch fitur (`git checkout -b feature/fitur-baru`)
-3. **Commit** perubahan Anda dengan pesan yang jelas
-4. **Push** ke fork Anda
-5. **Buka** Pull Request dengan deskripsi detail
+- Follow the existing code style in the repository
+- Write clear, descriptive commit messages
+- Add comments for complex logic
+- Keep functions small and focused
 
-## 🇨🇳 中文
+## Community
 
-### 如何贡献
-
-1. **Fork** 本仓库
-2. **创建** 功能分支 (`git checkout -b feature/amazing-feature`)
-3. **提交** 更改并附上清晰的描述信息
-4. **推送** 到您的 fork
-5. **提交** Pull Request 并附上详细描述
+Be respectful and constructive. We're all here to learn and build together.
 
 ---
 
-**Project Owner**: Mulky Malikul Dhaher  
-**Contact**: mulkymalikuldhaher@email.com
+## 📬 Contact
+
+**Mulky Malikul Dhaher** — [mulkymalikuldhaher@email.com](mailto:mulkymalikuldhaher@email.com)
+
+GitHub: [https://github.com/mulkymalikuldhrs](https://github.com/mulkymalikuldhrs)
 
 ---
 
-> ⚠️ **For Education Purpose Only** — This project is provided strictly for educational and research purposes. The authors and contributors assume **no responsibility or liability** for any damages, losses, or risks arising from the use of this software. **We do not bear any responsibility or risk** for how this software is used.
-
-**Contact:** Mulky Malikul Dhaher | mulkymalikuldhaher@email.com
+> This project is for **Education Purpose** only. **Risiko apapun tidak kita tanggung.** (We are not responsible for any risks or damages.)
