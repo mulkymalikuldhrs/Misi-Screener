@@ -1,176 +1,206 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/MiSi-Screener-0A0F1C?style=for-the-badge&logo=data:image/svg+xml;base64,&logoColor=00D4AA" alt="MiSi Screener">
-  <img src="https://img.shields.io/badge/Version-1.0.0-00D4AA?style=for-the-badge" alt="Version">
-  <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/badge/License-Unlicense-blue?style=for-the-badge" alt="License">
-</p>
+<a href="https://github.com/mulkymalikuldhrs/Misi-Screener">
+  <img align="center" src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=38&duration=3000&pause=1000&color=00D4AA&center=true&vCenter=true&multiline=true&repeat=true&width=800&height=120&lines=MISI+SCREENER;AI-Driven+Hedge+Fund+Platform;Autonomous+Trading+Engine" alt="Typing SVG" />
+</a>
 
-<p align="center">
-  <a href="https://github.com/mulkymalikuldhrs/Misi-Screener/blob/master/README.md">English</a> |
-  <a href="https://github.com/mulkymalikuldhrs/Misi-Screener/blob/master/README_id.md">Bahasa Indonesia</a> |
-  <a href="https://github.com/mulkymalikuldhrs/Misi-Screener/blob/master/README_zh.md">中文</a>
-</p>
+<div align="center">
 
-<p align="center">
-  <img src="https://readme-typing-svg.herokuapp.com?font=JetBrains+Mono&weight=600&size=22&duration=3000&pause=1000&color=00D4AA&center=true&vCenter=true&width=600&lines=AI-Driven+Hedge+Fund+Platform;Autonomous+Trading+Engine;Bloomberg-Grade+Intelligence+Terminal;Modular+Agent-Based+Architecture" alt="Typing SVG" />
-</p>
+[![Version](https://img.shields.io/badge/Version-1.0.0-00D4AA?style=for-the-badge&logo=semver&logoColor=white)](https://github.com/mulkymalikuldhrs/Misi-Screener)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge&logo=open-source-initiative&logoColor=white)](./LICENSE)
+[![Stars](https://img.shields.io/github/stars/mulkymalikuldhrs/Misi-Screener?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mulkymalikuldhrs/Misi-Screener/stargazers)
+
+</div>
+
+<div align="center">
+
+**Language / Bahasa / 语言**
+
+[![EN](https://img.shields.io/badge/EN-English-blue?style=flat-square)](README.md)
+[![ID](https://img.shields.io/badge/ID-Bahasa_Indonesia-red?style=flat-square)](README_id.md)
+[![CN](https://img.shields.io/badge/CN-中文-yellow?style=flat-square)](README_zh.md)
+
+</div>
 
 ---
 
-## Overview
+## 🇬🇧 English
 
-MiSi Screener is a powerful, open-source platform for building, testing, and deploying automated, AI-driven trading strategies. It is architected as a complete ecosystem, functioning as both an **autonomous trading engine** and an **interactive, Bloomberg-grade intelligence terminal**.
+### Overview
 
-The system is designed from the ground up to move beyond analysis into execution, providing all the core components of an automated hedge fund: strategy definition, signal generation, portfolio management, simulated execution, and performance validation through backtesting. This project is part of the [HermesQuantOS](https://github.com/mulkymalikuldhrs/HermesQuantOS) ecosystem, a broader initiative to build sovereign-grade, AI-native financial intelligence systems.
+**Misi Screener** is a powerful, open-source platform for building, testing, and deploying automated, AI-driven trading strategies. It functions as both an **autonomous trading engine** and an **interactive, Bloomberg-grade intelligence terminal** — providing all core components of an automated hedge fund: strategy definition, signal generation, portfolio management, simulated execution, and performance validation through backtesting.
 
-## Key Features
+> 🔗 Part of the [HermesQuantOS](https://github.com/mulkymalikuldhrs/HermesQuantOS) ecosystem — a broader initiative to build sovereign-grade, AI-native financial intelligence systems.
 
-- **Autonomous Trading Engine**: A master agent runs a continuous trading loop, executing strategies automatically based on real-time market data. The `HedgeFundMasterAgent` orchestrates signal generation, risk management, and trade execution in a fully autonomous cycle.
-- **Strategy Definition via YAML**: Define complex trading strategies with clear, human-readable YAML files, specifying entry/exit conditions, risk management parameters, and position sizing rules. No code changes required to iterate on strategies.
-- **"No Gimmick" Backtesting Engine**: A powerful, CLI-based backtester (`run_backtest.py`) that uses the *exact same* components as the live trading engine, ensuring realistic validation of strategy performance without lookahead bias.
-- **Operational Dashboard**: The interactive terminal has evolved into a command center. Start and stop the autonomous agent, monitor real-time portfolio performance (`/portfolio`), and conduct market research from a single interface.
-- **Modular, Agent-Based Architecture**: The system is composed of specialized agents (`SignalAgent`, `PortfolioManager`, `HedgeFundMasterAgent`) that work together, making the logic clean, decoupled, and extensible.
-- **Real-Time Data Integration**: Connects to free, public APIs for all market data, including Yahoo Finance, Alpha Vantage, and NewsAPI, ensuring analysis and trading are grounded in reality.
-- **AI Query Orchestrator**: A natural language interface that understands complex queries, identifies multiple tickers, and routes requests to the appropriate data connectors and analytical modules.
-- **Quant Scoring Engine**: Proprietary scoring system that aggregates technical, fundamental, and sentiment indicators into a unified quantitative assessment for each asset.
-
-## System Architecture
-
-The project is organized as a complete trading system with clearly separated concerns:
+### Architecture
 
 ```
-Misi-Screener/
-├── strategies/           # YAML-based trading strategy definitions
-├── agents/               # The "brains": signals, portfolio, orchestration
-│   ├── signal_agent.py          # Strategy interpretation & signal generation
-│   ├── portfolio_manager.py     # Position sizing & risk management
-│   ├── master_agent.py          # Autonomous trading loop orchestrator
-│   ├── advanced_orchestrator.py # Natural language query parsing
-│   ├── technical_analyst.py     # Technical analysis agent
-│   ├── fundamental_analyst.py   # Fundamental analysis agent
-│   ├── sentiment_analyst.py     # Market sentiment analysis agent
-│   ├── trader_agent.py          # Trade execution agent
-│   └── risk_manager.py          # Risk assessment & management
-├── components/           # Analytical modules and scoring engines
-│   ├── technical_indicators.py  # Core technical indicator calculations
-│   ├── quant_scoring/           # Quantitative scoring engine
-│   ├── final_verdict/           # Final verdict aggregation engine
-│   ├── market_structure/        # Market structure analysis
-│   ├── liquidity_orderflow/     # Liquidity & order flow analysis
-│   ├── order_book_venue/        # Order book & venue analysis
-│   ├── intermarket/             # Intermarket correlation analysis
-│   ├── positioning_crowd/       # Crowd positioning analysis
-│   ├── dex_intelligence/        # DEX intelligence module
-│   ├── macro_analysis/          # Macroeconomic analysis
-│   ├── monetary_fundamental/    # Monetary policy fundamental analysis
-│   └── execution_plan/          # Execution plan builder
-├── execution/            # Simulated paper trading broker
-├── data_sources/         # Connectors for external data APIs
-│   ├── yfinance_connector.py
-│   ├── alpha_vantage_connector.py
-│   └── news_connector.py
-├── dashboard/            # Interactive web terminal
-│   ├── backend/                 # FastAPI backend
-│   └── frontend/                # Web UI
-├── tests/                # Unit and integration tests
-└── run_backtest.py       # Standalone backtesting engine
+┌──────────────────────────────────────────────────────────┐
+│                   MISI SCREENER PLATFORM                  │
+├─────────────┬──────────────┬──────────────┬──────────────┤
+│  STRATEGIES │    AGENTS    │  COMPONENTS  │  DATA LAYER  │
+│  (YAML)     │  (9 Agents)  │  (12 Eng.)   │  (3 Sources) │
+├─────────────┼──────────────┼──────────────┼──────────────┤
+│ Entry/Exit  │ Master Agent │ Quant Score  │ Yahoo Finance│
+│ Risk Mgmt   │ Signal Agent │ Market Str.  │ Alpha Vantage│
+│ Position    │ Portfolio Mgr│ Liquidity    │ News API     │
+│ Sizing      │ Risk Manager │ DEX Intel    │              │
+│             │ Tech Analyst │ Macro Anal.  │              │
+│             │ Fund. Analyst│ Order Book   │              │
+│             │ Sentiment    │ Execution    │              │
+│             │ Trader Agent │ Final Verdict│              │
+│             │ Orchestrator │ Intermarket  │              │
+├─────────────┴──────────────┴──────────────┴──────────────┤
+│           BACKTESTING ENGINE  │  DASHBOARD (FastAPI)      │
+│           Paper Trading       │  Interactive Terminal     │
+└──────────────────────────────────────────────────────────┘
 ```
 
-For a more detailed breakdown, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+### Key Features
 
-## Getting Started
+- 🤖 **Autonomous Trading Engine** — Master agent runs continuous trading loop with real-time data
+- 📝 **YAML Strategy Definition** — Define complex strategies without code changes
+- 📊 **"No Gimmick" Backtesting** — Uses exact same components as live engine
+- 🏛️ **Modular Agent Architecture** — 9 specialized agents working in concert
+- 📈 **Quant Scoring Engine** — Aggregates technical, fundamental & sentiment indicators
+- 🔍 **AI Query Orchestrator** — Natural language interface for multi-ticker analysis
+- 📡 **Real-Time Data** — Yahoo Finance, Alpha Vantage, NewsAPI integration
 
-### Prerequisites
+### Quick Start
 
-- Python 3.11 or higher
-- pip package manager
-- API keys for enhanced features (optional but recommended)
+```bash
+# Clone the repository
+git clone https://github.com/mulkymalikuldhrs/Misi-Screener.git
+cd Misi-Screener
 
-### 1. Installation
+# Install dependencies
+pip install -r requirements.txt
 
-Clone the repository and install dependencies:
+# Run backtesting
+python run_backtest.py strategies/mean_reversion_rsi.yml --start "2023-01-01" --end "2023-12-31"
+
+# Start the dashboard
+python -m uvicorn dashboard.backend.main:app --host 0.0.0.0 --port 8000
+```
+
+### Core Agents
+
+| Agent | Role |
+|-------|------|
+| `HedgeFundMasterAgent` | Master orchestrator running autonomous trading loop |
+| `SignalAgent` | Strategy interpretation and signal generation |
+| `PortfolioManager` | Position sizing, risk management, portfolio tracking |
+| `AdvancedQueryOrchestrator` | Natural language query parsing |
+| `TechnicalAnalyst` | Technical analysis and pattern recognition |
+| `FundamentalAnalyst` | Fundamental analysis and valuation |
+| `SentimentAnalyst` | Market sentiment and news analysis |
+| `RiskManager` | Portfolio risk assessment |
+| `TraderAgent` | Trade execution and order management |
+
+---
+
+## 🇮🇩 Bahasa Indonesia
+
+### Ringkasan
+
+**Misi Screener** adalah platform sumber terbuka yang kuat untuk membangun, menguji, dan menerapkan strategi perdagangan otomatis berbasis AI. Berfungsi sebagai **mesin perdagangan otonom** dan **terminal intelijen tingkat Bloomberg** — menyediakan semua komponen inti hedge fund otomatis: definisi strategi, pembuatan sinyal, manajemen portofolio, eksekusi simulasi, dan validasi performa melalui backtesting.
+
+> 🔗 Bagian dari ekosistem [HermesQuantOS](https://github.com/mulkymalikuldhrs/HermesQuantOS) — inisiatif lebih luas untuk membangun sistem intelijen keuangan berbasis AI kelas berdaulat.
+
+### Fitur Utama
+
+- 🤖 **Mesin Perdagangan Otonom** — Agen master menjalankan loop perdagangan berkelanjutan
+- 📝 **Definisi Strategi YAML** — Tentukan strategi kompleks tanpa perubahan kode
+- 📊 **Backtesting Tanpa Tipu** — Menggunakan komponen yang sama persis dengan mesin langsung
+- 🏛️ **Arsitektur Agen Modular** — 9 agen khusus bekerja bersama
+- 📈 **Mesin Skor Kuant** — Menggabungkan indikator teknikal, fundamental & sentimen
+- 🔍 **Orkestrator Kueri AI** — Antarmuka bahasa alami untuk analisis multi-ticker
+
+### Mulai Cepat
 
 ```bash
 git clone https://github.com/mulkymalikuldhrs/Misi-Screener.git
 cd Misi-Screener
 pip install -r requirements.txt
-```
-
-### 2. Set Up API Keys
-
-Set the following environment variables. While not required for the RSI strategy, they are needed for `/news` and `/FA` commands:
-
-```bash
-export NEWS_API_KEY='your_key_from_newsapi.org'
-export ALPHA_VANTAGE_API_KEY='your_key_from_alphavantage.co'
-```
-
-### 3. Backtesting a Strategy
-
-Before running the agent live, always validate a strategy with the backtester:
-
-```bash
 python run_backtest.py strategies/mean_reversion_rsi.yml --start "2023-01-01" --end "2023-12-31"
 ```
 
-This runs the `MeanReversionRSI` strategy over the specified historical period and prints a detailed performance report including total return, drawdown, and trade statistics.
+---
 
-### 4. Running the Autonomous Agent
+## 🇨🇳 中文
 
-Start the backend server from the project root:
+### 概述
+
+**Misi Screener** 是一个强大的开源平台，用于构建、测试和部署自动化AI驱动的交易策略。它既是**自主交易引擎**，也是**交互式Bloomberg级智能终端**——提供自动化对冲基金的所有核心组件：策略定义、信号生成、投资组合管理、模拟执行和回测验证。
+
+> 🔗 [HermesQuantOS](https://github.com/mulkymalikuldhrs/HermesQuantOS) 生态系统的一部分——构建主权级AI原生金融智能系统的更广泛倡议。
+
+### 主要特性
+
+- 🤖 **自主交易引擎** — 主代理运行持续交易循环
+- 📝 **YAML策略定义** — 无需代码更改即可定义复杂策略
+- 📊 **真实回测引擎** — 使用与实盘引擎完全相同的组件
+- 🏛️ **模块化代理架构** — 9个专业代理协同工作
+- 📈 **量化评分引擎** — 聚合技术、基本面和情绪指标
+- 🔍 **AI查询协调器** — 多股票分析自然语言接口
+
+### 快速开始
 
 ```bash
-python -m uvicorn dashboard.backend.main:app --host 0.0.0.0 --port 8000
+git clone https://github.com/mulkymalikuldhrs/Misi-Screener.git
+cd Misi-Screener
+pip install -r requirements.txt
+python run_backtest.py strategies/mean_reversion_rsi.yml --start "2023-01-01" --end "2023-12-31"
 ```
 
-Then open your web browser to `http://127.0.0.1:8000`.
+---
 
-- Click **"Start Agent"** to initialize the `HedgeFundMasterAgent`. The agent will begin executing its trading loop every 60 seconds by default.
-- Use the `/portfolio` command to monitor positions and performance in real-time.
-- Click **"Stop Agent"** to gracefully shut down the trading loop.
+## ⚠️ Disclaimer
 
-## Core Agents
+**For Education Purpose Only**
 
-| Agent | Module | Role |
-|-------|--------|------|
-| `HedgeFundMasterAgent` | `agents/master_agent.py` | Master orchestrator running the autonomous trading loop |
-| `SignalAgent` | `agents/signal_agent.py` | Strategy interpretation and signal generation (BUY/SELL/HOLD) |
-| `PortfolioManager` | `agents/portfolio_manager.py` | Position sizing, risk management, and portfolio state tracking |
-| `AdvancedQueryOrchestrator` | `agents/advanced_orchestrator.py` | Natural language query parsing and multi-ticker routing |
-| `TechnicalAnalyst` | `agents/technical_analyst.py` | Technical analysis and pattern recognition |
-| `FundamentalAnalyst` | `agents/fundamental_analyst.py` | Fundamental analysis and valuation |
-| `SentimentAnalyst` | `agents/sentiment_analyst.py` | Market sentiment and news analysis |
-| `RiskManager` | `agents/risk_manager.py` | Portfolio risk assessment and management |
-| `TraderAgent` | `agents/trader_agent.py` | Trade execution and order management |
+This project is provided strictly for educational and research purposes. The authors and contributors assume **no responsibility or liability** for any damages, losses, or risks arising from the use of this software. **We do not bear any responsibility or risk** for how this software is used.
 
-## Documentation
+**Contact:** Mulky Malikul Dhaher | mulkymalikuldhaher@email.com
 
-- [Architecture Guide](./ARCHITECTURE.md) - Detailed system architecture and component interaction
-- [Contributing Guide](./CONTRIBUTING.md) - How to contribute to MiSi Screener
-- [Changelog](./CHANGELOG.md) - Release history and notable changes
-- [Philosophy](./docs/philosophy.md) - AI-first, sovereign-grade intelligence design philosophy
-- [Limitations](./docs/limitations.md) - Current system limitations and known issues
-- [Validation](./docs/validation.md) - Strategy validation methodology
-- [References](./docs/references.md) - Academic and technical references
+---
 
-## Related Projects
+## 📚 Documentation
 
-- [HermesQuantOS](https://github.com/mulkymalikuldhrs/HermesQuantOS) - The broader AI-native financial intelligence ecosystem
-- [SolSniperX](https://github.com/mulkymalikuldhrs/SolSniperX) - AI-powered Solana memecoin sniper bot
+- [Architecture Guide](./ARCHITECTURE.md) — Detailed system architecture
+- [Contributing Guide](./CONTRIBUTING.md) — How to contribute
+- [Changelog](./CHANGELOG.md) — Release history
+- [Philosophy](./docs/philosophy.md) — AI-first design philosophy
+- [Limitations](./docs/limitations.md) — Known issues
+- [Validation](./docs/validation.md) — Strategy validation methodology
 
-## License
+## 🔗 Related Projects
 
-This project is released into the public domain under the [Unlicense](./LICENSE). You are free to copy, modify, publish, use, compile, sell, or distribute this software for any purpose, commercial or non-commercial.
+| Project | Description |
+|---------|-------------|
+| [HermesQuantOS](https://github.com/mulkymalikuldhrs/HermesQuantOS) | Autonomous multi-agent trading infrastructure |
+| [Quant-Nanggroe-AI](https://github.com/mulkymalikuldhrs/Quant-Nanggroe-AI) | Multi-Agent Decision Intelligence OS |
+| [AI-MultiColony-Ecosystem](https://github.com/mulkymalikuldhrs/AI-MultiColony-Ecosystem) | Multi-agent colony coordination platform |
 
-## Author
+## 📬 Contact
 
-**Mulky Malikul Dhaher**
+<div align="center">
 
-- Email: mulkymalikuldhaher@email.com
-- GitHub: [@mulkymalikuldhrs](https://github.com/mulkymalikuldhrs)
+[![Email](https://img.shields.io/badge/Email-mulkymalikuldhaher@email.com-00D4AA?style=for-the-badge&logo=gmail&logoColor=white)](mailto:mulkymalikuldhaher@email.com)
+[![GitHub](https://img.shields.io/badge/GitHub-mulkymalikuldhrs-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mulkymalikuldhrs)
 
-<p align="center">
-  <img src="https://img.shields.io/github/stars/mulkymalikuldhrs/Misi-Screener?style=social" alt="Stars">
-  <img src="https://img.shields.io/github/forks/mulkymalikuldhrs/Misi-Screener?style=social" alt="Forks">
-  <img src="https://img.shields.io/github/watchers/mulkymalikuldhrs/Misi-Screener?style=social" alt="Watchers">
-</p>
+</div>
+
+## 📜 License
+
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+
+---
+
+<div align="center">
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0D9488,50:065F46,100:020205&height=100&section=footer" width="100%" />
+
+Built with 💎 by **Mulky Malikul Dhaher** 🇮🇩
+
+</div>
