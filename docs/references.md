@@ -47,3 +47,7 @@ While our implementation is from first principles, the following repository has 
 
 ---
 *Note: Previous references related to the deprecated, non-predictive version of this project have been removed to avoid confusion.*
+
+---
+> **Contact:** Mulky Malikul Dhaher — [mulkymalikuldhaher@email.com](mailto:mulkymalikuldhaher@email.com)
+> **Disclaimer:** This project is for Education Purpose only. Risiko apapun tidak kita tanggung. (We are not responsible for any risks or damages.)

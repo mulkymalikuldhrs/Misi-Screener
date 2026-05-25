@@ -36,3 +36,7 @@ We will employ a three-pronged approach to validation, progressing from historic
 -   We explicitly reject vanity metrics like "win rate" without the context of risk/reward.
 -   We will not "cherry-pick" successful backtests. All results, both good and bad, must be documented and analyzed.
 -   The ultimate measure of a model's success is its risk-adjusted return and its consistency over time, not a single spectacular backtest report.
+
+---
+> **Contact:** Mulky Malikul Dhaher — [mulkymalikuldhaher@email.com](mailto:mulkymalikuldhaher@email.com)
+> **Disclaimer:** This project is for Education Purpose only. Risiko apapun tidak kita tanggung. (We are not responsible for any risks or damages.)

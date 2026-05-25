@@ -1,0 +1,17 @@
+services:
+  misi-screener:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - ALPACA_API_KEY=${ALPACA_API_KEY}
+      - ALPACA_API_SECRET=${ALPACA_API_SECRET}
+      - ALPACA_BASE_URL=https://paper-api.alpaca.markets
+      - NEWS_API_KEY=${NEWS_API_KEY}
+      - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY}
+      - DB_PATH=/app/data/misi_hedge_fund.db
+      - LOG_FILE=/app/logs/misi_screener.log
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: always

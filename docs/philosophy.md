@@ -19,3 +19,7 @@ Inspired by the OpenBB philosophy, the system relies exclusively on connections 
 
 ### 4. Modular & Composable, Not Monolithic
 A Bloomberg Terminal is not a single application; it is a collection of thousands of powerful, specialized "apps" (`/FA`, `/NEWS`, `/WEIF`, etc.). MiSi Screener adopts this modular approach. Every analytical function is a discrete component that can be invoked independently or composed by the AI orchestrator to answer complex, multi-faceted questions. This makes the system infinitely extensible.
+
+---
+> **Contact:** Mulky Malikul Dhaher — [mulkymalikuldhaher@email.com](mailto:mulkymalikuldhaher@email.com)
+> **Disclaimer:** This project is for Education Purpose only. Risiko apapun tidak kita tanggung. (We are not responsible for any risks or damages.)

@@ -1,23 +1,29 @@
-# MiSi Screener - AI Trading Agent Framework
-#
-# Author: Mulky Malikul Dhaher
-# Email: mulkymalikuldhr@mail.com
-# Instagram: @mulkymalikuldhr
-#
-# This is the main entry point for the MiSi Screener AI system.
-# It will orchestrate the various agents to analyze the market,
-# select strategies, and make autonomous trading decisions.
+import uvicorn
+import os
+import argparse
+from utils.logger import logger
 
 def main():
-    print("Initializing MiSi Screener AI Trading Framework...")
-    # 1. Initialize Data Sources
-    # 2. Initialize Agents (Technical, Fundamental, Sentiment, etc.)
-    # 3. Start the main analysis loop
-    #    - Agents analyze data
-    #    - Agents collaborate to form a market view
-    #    - TraderAgent selects and executes strategies
-    # 4. Launch Dashboard
-    print("MiSi Screener is now running.")
+    parser = argparse.ArgumentParser(description="MiSi Screener AI Trading Platform")
+    parser.add_argument("--host", default="0.0.0.0", help="Host to bind the server to")
+    parser.add_argument("--port", type=int, default=8000, help="Port to bind the server to")
+    parser.add_argument("--reload", action="store_true", help="Enable uvicorn reload")
+
+    args = parser.parse_args()
+
+    logger.info("Initializing MiSi Screener AI Trading Framework...")
+
+    # In a production environment, we might want to pre-load some agents here
+    # or perform database migrations.
+
+    logger.info(f"Starting MiSi Terminal on http://{args.host}:{args.port}")
+
+    uvicorn.run(
+        "dashboard.backend.main:app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload
+    )
 
 if __name__ == "__main__":
     main()
