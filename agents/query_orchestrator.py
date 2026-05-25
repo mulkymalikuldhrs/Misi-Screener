@@ -81,22 +81,22 @@ class QueryOrchestrator:
 
         return identified_app, params
 
-# Example usage:
 if __name__ == '__main__':
-    # Mock app registry for testing
-    mock_registry = {
+if __name__ == '__main__':
+        # Example usage with a sample app registry
+    example_registry = {
         "get_historical_data": None,
         "get_news_headlines": None,
         "get_income_statement": None,
     }
 
-    orchestrator = QueryOrchestrator(mock_registry)
+    orchestrator = QueryOrchestrator(example_registry)
 
     queries = [
         "show me the latest news for AAPL",
         "what was the revenue for MSFT last year?",
         "get me the price history for BTC-USD",
-        "compare TSLA and F" # This would fail gracefully for now
+        "compare TSLA and F",
     ]
 
     for q in queries:
