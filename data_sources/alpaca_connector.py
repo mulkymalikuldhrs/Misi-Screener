@@ -2,6 +2,7 @@ import os
 import alpaca_trade_api as tradeapi
 import pandas as pd
 from typing import Optional
+from utils.logger import logger
 
 class AlpacaConnector:
     """
@@ -18,13 +19,13 @@ class AlpacaConnector:
         self.base_url = base_url or os.environ.get('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
 
         if not self.api_key or not self.api_secret:
-            print("AlpacaConnector Warning: API credentials not found.")
+            logger.warning("AlpacaConnector: API credentials not found.")
             self.api = None
         else:
             try:
                 self.api = tradeapi.REST(self.api_key, self.api_secret, self.base_url, api_version='v2')
             except Exception as e:
-                print(f"AlpacaConnector Error: Could not connect: {e}")
+                logger.error(f"AlpacaConnector: Could not connect: {e}")
                 self.api = None
 
     def get_historical_data(self, ticker: str, period: str = "1y", timeframe: str = "1Day") -> pd.DataFrame:
@@ -64,7 +65,7 @@ class AlpacaConnector:
             if bars.empty:
                 return pd.DataFrame()
 
-            # Rename columns to match the system expectation (Case-sensitive sometimes)
+            # Rename columns to match the system expectation (Title Case)
             bars = bars.rename(columns={
                 'open': 'Open',
                 'high': 'High',
@@ -81,5 +82,5 @@ class AlpacaConnector:
             return bars
 
         except Exception as e:
-            print(f"AlpacaConnector Error: {e}")
+            logger.error(f"AlpacaConnector Error: {e}")
             return pd.DataFrame()

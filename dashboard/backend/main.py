@@ -29,7 +29,7 @@ HEDGE_FUND_STATE: Dict[str, Any] = {
 app = FastAPI(
     title="MiSi Terminal API",
     description="API for the MiSi AI Quant Terminal & Hedge Fund.",
-    version="3.0.0"
+    version="2.0.0"
 )
 
 # --- Service Instantiation ---

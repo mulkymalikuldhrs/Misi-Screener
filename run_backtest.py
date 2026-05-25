@@ -4,16 +4,20 @@ from tqdm import tqdm
 
 # Ensure all modules can be imported
 from agents.signal_agent import SignalAgent
+from agents.technical_analyst import TechnicalAnalystAgent
 from agents.portfolio_manager import PortfolioManager
-from agents.master_agent import HedgeFundMasterAgent
+from agents.hedge_fund_master_agent import HedgeFundMasterAgent
+from agents.strategy_manager import StrategyManager
+from agents.risk_manager import RiskManager
 from execution.paper_trading_broker import PaperTradingBroker
 from data_sources.yfinance_connector import YFinanceConnector
+
 
 # --- Backtesting "Broker" ---
 # We need a modified broker for backtesting that uses historical data instead of live prices.
 class BacktestingBroker(PaperTradingBroker):
-    def __init__(self, portfolio_manager, historical_data):
-        self.portfolio_manager = portfolio_manager
+    def __init__(self, portfolio_manager, historical_data, data_connector):
+        super().__init__(portfolio_manager=portfolio_manager, data_connector=data_connector)
         self.historical_data = historical_data
         self.current_step = 0
 
@@ -24,6 +28,7 @@ class BacktestingBroker(PaperTradingBroker):
     def set_step(self, step: int):
         """Sets the current time step for the backtest."""
         self.current_step = step
+
 
 def run_backtest(strategy_filepath: str, start_date: str, end_date: str):
     """
@@ -39,11 +44,13 @@ def run_backtest(strategy_filepath: str, start_date: str, end_date: str):
 
     # 1. --- Initialization ---
     data_connector = YFinanceConnector()
-    portfolio_manager = PortfolioManager(initial_cash=100000.0)
+    technical_analyst = TechnicalAnalystAgent()
+    strategy_manager = StrategyManager(strategy_filepath)
+
+    portfolio_manager = PortfolioManager(data_connector=data_connector, initial_cash=100000.0)
 
     # Load the strategy to get the ticker
-    signal_agent_for_setup = SignalAgent(strategy_filepath, data_connector)
-    ticker = signal_agent_for_setup.strategy['asset_ticker']
+    ticker = strategy_manager.get_asset_ticker()
 
     # Fetch all historical data for the backtest period at once
     full_historical_data = data_connector.get_historical_data(ticker, period="max")
@@ -53,7 +60,7 @@ def run_backtest(strategy_filepath: str, start_date: str, end_date: str):
         return
 
     # Create the backtesting-specific components
-    backtesting_broker = BacktestingBroker(portfolio_manager, backtest_data)
+    backtesting_broker = BacktestingBroker(portfolio_manager, backtest_data, data_connector)
 
     # 2. --- Simulation Loop ---
     # We iterate through each data point in our historical dataset.
@@ -65,20 +72,51 @@ def run_backtest(strategy_filepath: str, start_date: str, end_date: str):
 
         # We need a mock data connector that returns this historical view
         class HistoricalDataConnector:
-            def get_historical_data(self, ticker, period):
-                return current_data_view
+            def __init__(self, data_view):
+                self.data_view = data_view
 
-        # Instantiate the agents with the historical data view
-        signal_agent = SignalAgent(strategy_filepath, HistoricalDataConnector())
+            def get_historical_data(self, ticker, period="1y"):
+                return self.data_view
+
+        historical_connector = HistoricalDataConnector(current_data_view)
+
+        # Instantiate agents with the historical data view
+        strategy_mgr = StrategyManager(strategy_filepath)
+        signal_agent = SignalAgent(
+            strategy_manager=strategy_mgr,
+            data_connector=historical_connector,
+            technical_analyst=technical_analyst
+        )
+        risk_manager = RiskManager(
+            data_connector=historical_connector,
+            technical_analyst=technical_analyst
+        )
 
         # The master agent orchestrates a single "turn"
-        master_agent = HedgeFundMasterAgent(signal_agent, portfolio_manager, backtesting_broker, signal_agent.strategy)
+        master_agent = HedgeFundMasterAgent(
+            strategy_manager=strategy_mgr,
+            signal_agent=signal_agent,
+            portfolio_manager=portfolio_manager,
+            risk_manager=risk_manager,
+            broker=backtesting_broker
+        )
 
         # Set the current time step for the broker to get the correct price
         backtesting_broker.set_step(i)
 
-        # Run a single trading loop iteration
-        master_agent.run_trading_loop()
+        # Run a single trading loop iteration (synchronous for backtesting)
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If already in an async context, create a task
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    pool.submit(lambda: asyncio.run(master_agent.run_trading_loop())).result()
+            else:
+                loop.run_until_complete(master_agent.run_trading_loop())
+        except RuntimeError:
+            asyncio.run(master_agent.run_trading_loop())
 
     # 3. --- Performance Report ---
     print("\n--- Backtest Complete ---")

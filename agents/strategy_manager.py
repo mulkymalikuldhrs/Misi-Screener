@@ -1,5 +1,6 @@
 import yaml
 from typing import Dict, Any
+from utils.logger import logger
 
 class StrategyManager:
     """
@@ -35,10 +36,10 @@ class StrategyManager:
             with open(filepath, 'r') as file:
                 return yaml.safe_load(file)
         except FileNotFoundError:
-            print(f"Error: Strategy file not found at {filepath}")
+            logger.error(f"Strategy file not found at {filepath}")
             raise
         except Exception as e:
-            print(f"Error loading or parsing strategy file {filepath}: {e}")
+            logger.error(f"Error loading or parsing strategy file {filepath}: {e}")
             raise
 
     def get_strategy_name(self) -> str:
