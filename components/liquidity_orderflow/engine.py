@@ -4,20 +4,26 @@ class LiquidityOrderflowEngine:
     """
     MODULE 6: LIQUIDITY, ORDERFLOW & SESSION LOGIC
     Analyzes liquidity behavior.
+
+    Status: Stub — requires order flow / Level 2 data feeds.
     """
+
     def __init__(self):
-        pass
+        self._configured = False
 
     def analyze(self, ohlc_data):
         """
         Generates a report on liquidity maps and manipulation probability.
+        Returns 'not configured' state when no order flow data is available.
         """
-        report = {
-            "liquidity_map": {
-                "internal_liquidity": ["e.g., Recent swing lows"],
-                "external_liquidity": ["e.g., Major weekly high"]
-            },
-            "manipulation_probability": "High/Medium/Low",
-            "likely_path_of_price": "Towards external BSL"
-        }
-        return report
+        if not self._configured:
+            return {
+                "status": "not_configured",
+                "message": "LiquidityOrderflowEngine: No order flow / Level 2 data feed configured. "
+                           "Connect a real-time order book or tick data source to enable real analysis.",
+                "liquidity_map": {"internal_liquidity": [], "external_liquidity": []},
+                "manipulation_probability": None,
+                "likely_path_of_price": None
+            }
+
+        return self._run_analysis(ohlc_data)

@@ -4,29 +4,27 @@ class MarketStructureEngineSMC:
     """
     MODULE 5: MARKET STRUCTURE (SMC / ICT CORE)
     Performs Smart Money Concepts / Inner Circle Trader analysis.
+
+    Status: Stub — requires OHLC data and SMC pattern detection algorithms.
     """
+
     def __init__(self):
-        pass
+        self._configured = False
 
     def analyze(self, ohlc_data):
         """
         Generates a multi-timeframe market structure report based on SMC/ICT principles.
+        Returns 'not configured' state when no pattern detection is implemented.
         """
-        report = {
-            "htf_h1": {
-                "primary_trend": "Bullish/Bearish",
-                "external_liquidity_targets": ["e.g., 1.2345 (BSL)"]
-            },
-            "mtf_m15": {
-                "internal_structure": "Bullish/Bearish",
-                "inducement_zone": "e.g., 1.2300"
-            },
-            "ltf_m5": {
-                "entry_structure": "CHoCH confirmed",
-                "precise_execution_zone": ["e.g., FVG at 1.2280-1.2290"]
-            },
-            "key_smc_levels": {
-                "bos": [], "choch": [], "fvg": [], "ob": []
+        if not self._configured:
+            return {
+                "status": "not_configured",
+                "message": "MarketStructureEngineSMC: No SMC pattern detection configured. "
+                           "Implement BOS/CHoCH/FVG/OB detection algorithms to enable real analysis.",
+                "htf_h1": {"primary_trend": None, "external_liquidity_targets": []},
+                "mtf_m15": {"internal_structure": None, "inducement_zone": None},
+                "ltf_m5": {"entry_structure": None, "precise_execution_zone": []},
+                "key_smc_levels": {"bos": [], "choch": [], "fvg": [], "ob": []}
             }
-        }
-        return report
+
+        return self._run_analysis(ohlc_data)

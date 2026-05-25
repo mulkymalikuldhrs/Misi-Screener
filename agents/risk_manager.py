@@ -50,7 +50,9 @@ class RiskManager:
         """
         Calculates a stop-loss based on the Average True Range (ATR), a measure of volatility.
         """
-        atr_multiplier = risk_params.get('atr_multiplier', 2.0)
+        # Support both 'atr_multiplier' and 'stop_loss_atr_multiplier' (YAML key)
+        atr_multiplier = risk_params.get('atr_multiplier',
+                         risk_params.get('stop_loss_atr_multiplier', 2.0))
         atr_period = risk_params.get('atr_period', 14)
 
         # Fetch historical data to calculate ATR

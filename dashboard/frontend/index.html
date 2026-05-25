@@ -304,12 +304,13 @@
             }
 
             function formatNumber(num) {
-                if (num === 'None' || num === null) return 'N/A';
-                const number = BigInt(num);
-                if (number >= 1_000_000_000_000) return (Number(number) / 1_000_000_000_000).toFixed(2) + 'T';
-                if (number >= 1_000_000_000) return (Number(number) / 1_000_000_000).toFixed(2) + 'B';
-                if (number >= 1_000_000) return (Number(number) / 1_000_000).toFixed(2) + 'M';
-                return Number(number).toLocaleString();
+                if (num === 'None' || num === null || num === undefined || num === '') return 'N/A';
+                const number = Number(num);
+                if (isNaN(number)) return 'N/A';
+                if (Math.abs(number) >= 1_000_000_000_000) return (number / 1_000_000_000_000).toFixed(2) + 'T';
+                if (Math.abs(number) >= 1_000_000_000) return (number / 1_000_000_000).toFixed(2) + 'B';
+                if (Math.abs(number) >= 1_000_000) return (number / 1_000_000).toFixed(2) + 'M';
+                return number.toLocaleString(undefined, {maximumFractionDigits: 2});
             }
 
             function renderPanelContent(panel, responseData, appIdentifier) {

@@ -4,20 +4,28 @@ class MacroAnalysisEngine:
     """
     MODULE 1: GLOBAL MACRO, GEO & LIQUIDITY REGIME
     Determines the dominant global regime.
+
+    Status: Stub — requires integration with macro data providers (FRED, World Bank, etc.)
     """
+
     def __init__(self):
-        pass
+        self._configured = False
 
     def analyze(self):
         """
         Generates a report on the global macro, geo, and liquidity regime.
+        Returns 'not configured' state when no data provider is connected.
         """
-        report = {
-            "macro_regime_classification": "Risk-On/Risk-Off/Transitional",
-            "asset_sensitivity_to_regime": "High/Medium/Low",
-            "macro_bias": {"direction": "Bullish/Bearish/Neutral", "strength": "High/Medium/Low"},
-            "regime_failure_conditions": "e.g., VIX crossing a certain threshold"
-        }
-        # In the future, this will involve complex data analysis.
-        # For now, it returns the expected structure.
-        return report
+        if not self._configured:
+            return {
+                "status": "not_configured",
+                "message": "MacroAnalysisEngine: No data provider configured. "
+                           "Connect a macro data source (e.g., FRED API) to enable real analysis.",
+                "macro_regime_classification": None,
+                "asset_sensitivity_to_regime": None,
+                "macro_bias": {"direction": None, "strength": None},
+                "regime_failure_conditions": None
+            }
+
+        # Real implementation would go here when configured
+        return self._run_analysis()

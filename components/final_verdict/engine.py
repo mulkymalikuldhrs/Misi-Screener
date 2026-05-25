@@ -4,28 +4,33 @@ class FinalVerdictEngine:
     """
     MODULE 11: FINAL VERDICT
     Delivers the final, synthesized decision.
+
+    Status: Stub — requires execution plan and quant score from other modules.
     """
+
     def __init__(self):
-        pass
+        self._configured = False
 
     def decide(self, execution_plan, quant_score):
         """
         Takes the final execution plan and score to generate a clear, final verdict.
-        This is the ultimate output for the user or the autonomous agent.
+        Returns 'not configured' state when no real inputs are available.
         """
-        verdict = {
-            "trade_direction": "Long",
-            "conviction_level": "High",
-            "capital_allocation_suggestion": "0.5% of portfolio",
-            "key_risks": ["Volatility expansion due to news", "Failure to respect M15 FVG"],
-            "alternative_scenarios": ["If M15 POI fails, look for re-entry at H1 OB."],
-            "conditions_to_abort": ["Price breaking below M15 inducement low before entry."],
-            "entry_point": "1.2285",
-            "sl": "1.2480",
-            "tp": "1.2550"
-        }
+        if not self._configured:
+            # If quant_score is from an unconfigured QuantScoringEngine, it will have no grade
+            if isinstance(quant_score, dict) and quant_score.get("status") == "not_configured":
+                return {
+                    "status": "not_configured",
+                    "message": "FinalVerdictEngine: Cannot render verdict — quant scoring is not configured.",
+                    "trade_direction": "NO TRADE",
+                    "reason": "Insufficient analysis modules configured."
+                }
 
-        if quant_score["trade_grade"] == "NO TRADE":
-            return {"trade_direction": "NO TRADE", "reason": "Quant score too low."}
+            return {
+                "status": "not_configured",
+                "message": "FinalVerdictEngine: Not configured. Enable dependent modules first.",
+                "trade_direction": None,
+                "conviction_level": None
+            }
 
-        return verdict
+        return self._render_verdict(execution_plan, quant_score)
